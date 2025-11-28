@@ -1,8 +1,10 @@
-model_trening/cheakpoint
+UNET_trening/cheakpoint
 UNET_trening/carla_dataset/imgs
 UNET_trening/carla_dataset/labels
 UNET_trening/carla_dataset/images.tar
 UNET_trening/carla_dataset/labels.tar
 
 UNET_trening/gazebo_train_data_generator/imgs
-UNET_trening/gazebo_train_data_generator/masks
+UNET_trening/gazebo_train_data_generator/masks\
+
+UNET_trening/cheakpoint/best-unet-epoch=06-val_dice=0.9587.ckpt

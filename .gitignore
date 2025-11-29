@@ -8,3 +8,6 @@ UNET_trening/gazebo_train_data_generator/imgs
 UNET_trening/gazebo_train_data_generator/masks
 
 UNET_trening/cheakpoint/best-unet-epoch=06-val_dice=0.9587.ckpt
+
+UNET_trening/best-unet-epoch=05-val_dice=0.9838.ckpt
+UNET_trening/cheakpoint/best-unet-epoch=06-val_dice=0.9587.ckpt

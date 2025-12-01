@@ -17,7 +17,8 @@ def generate_launch_description():
         executable='parameter_bridge',
         arguments=['/cmd_vel@geometry_msgs/msg/Twist@gz.msgs.Twist',
                    '/world/mecanum_drive/model/vehicle_blue/link/camera_link/sensor/camera_sensor/image@sensor_msgs/msg/Image@gz.msgs.Image',
-                   '/world/mecanum_drive/model/vehicle_blue/link/lidar_link/sensor/lidar/scan@sensor_msgs/msg/LaserScan@gz.msgs.LaserScan'],
+                   '/world/mecanum_drive/model/vehicle_blue/link/lidar_link/sensor/lidar/scan@sensor_msgs/msg/LaserScan@gz.msgs.LaserScan',
+                   '/world/mecanum_drive/model/vehicle_blue/link/gps_link/sensor/gps/navsat@sensor_msgs/msg/NavSatFix@gz.msgs.NavSat'],
         output='screen'
     )
 

@@ -1,11 +1,14 @@
 from launch import LaunchDescription
-from launch.actions import ExecuteProcess
+from launch.actions import ExecuteProcess, SetEnvironmentVariable
 from launch_ros.actions import Node
-
 
 def generate_launch_description():
     world_path = "/home/developer/ros2_ws/src/models/mecanum.sdf"
-    gz_bridge_path = "/home/developer/ros2_ws/src/autonomous_vehicles/config/bridge_config.yaml"
+
+    set_gz_resource_path = SetEnvironmentVariable(
+        name='IGN_GAZEBO_RESOURCE_PATH',
+        value='/home/developer/ros2_ws/src/models'
+    )
 
     gz_sim_world = ExecuteProcess(
         cmd=["gz", "sim", world_path, "-r"],
@@ -15,24 +18,50 @@ def generate_launch_description():
     gz_bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
-        arguments=['/cmd_vel@geometry_msgs/msg/Twist@gz.msgs.Twist',
-                   '/world/mecanum_drive/model/vehicle_blue/link/camera_link/sensor/camera_sensor/image@sensor_msgs/msg/Image@gz.msgs.Image',
-                   '/world/mecanum_drive/model/vehicle_blue/link/lidar_link/sensor/lidar/scan@sensor_msgs/msg/LaserScan@gz.msgs.LaserScan',
-                   '/world/mecanum_drive/model/vehicle_blue/link/gps_link/sensor/gps/navsat@sensor_msgs/msg/NavSatFix@gz.msgs.NavSat'],
+        arguments=[
+            '/cmd_vel@geometry_msgs/msg/Twist@gz.msgs.Twist',
+            '/world/mecanum_drive/model/vehicle_blue/link/camera_link/sensor/camera_sensor/image@sensor_msgs/msg/Image@gz.msgs.Image',
+            # '/world/mecanum_drive/model/vehicle_blue/link/lidar_link/sensor/lidar/scan@sensor_msgs/msg/LaserScan@gz.msgs.LaserScan',
+            '/world/mecanum_drive/model/vehicle_blue/link/gps_link/sensor/gps/navsat@sensor_msgs/msg/NavSatFix@gz.msgs.NavSat',
+            "/world/mecanum_drive/model/vehicle_blue/link/lidar_link/sensor/lidar_3d/points@sensor_msgs/msg/PointCloud2@gz.msgs.PointCloudPacked",
+        ],
         output='screen'
     )
 
+    image_node = Node(
+        package='autonomous_vehicles',  # tu wpisz swój package z SegmentationNode
+        executable='image_node',  # nazwa executable z setup.py / entry_point
+        name='image_node',
+        output='screen'
+    )
+
+    lidar_node = Node(
+        package='autonomous_vehicles',  # tu wpisz swój package z SegmentationNode
+        executable='lidar_node',  # nazwa executable z setup.py / entry_point
+        name='lidar_node',
+        output='screen'
+    )
+
+    gps_node = Node(
+        package='autonomous_vehicles',  # tu wpisz swój package z SegmentationNode
+        executable='lidar_node',  # nazwa executable z setup.py / entry_point
+        name='gps_node',
+        output='screen'
+    )
 
     control_node = Node(
-        package='autonomous_vehicles',  
+        package='autonomous_vehicles',
         executable='control_node',
         name='control_node',
         output="screen"
     )
 
-
     return LaunchDescription([
+        set_gz_resource_path,
         gz_sim_world,
         gz_bridge,
+        image_node,
+        lidar_node,
+        gps_node,
         control_node
     ])

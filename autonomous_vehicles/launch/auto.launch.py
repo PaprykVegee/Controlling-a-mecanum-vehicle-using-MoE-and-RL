@@ -21,9 +21,9 @@ def generate_launch_description():
         arguments=[
             '/cmd_vel@geometry_msgs/msg/Twist@gz.msgs.Twist',
             '/world/mecanum_drive/model/vehicle_blue/link/camera_link/sensor/camera_sensor/image@sensor_msgs/msg/Image@gz.msgs.Image',
-            # '/world/mecanum_drive/model/vehicle_blue/link/lidar_link/sensor/lidar/scan@sensor_msgs/msg/LaserScan@gz.msgs.LaserScan',
+            '/world/mecanum_drive/model/vehicle_blue/link/lidar_2d_link/sensor/lidar_2d/scan@sensor_msgs/msg/LaserScan@gz.msgs.LaserScan',
             '/world/mecanum_drive/model/vehicle_blue/link/gps_link/sensor/gps/navsat@sensor_msgs/msg/NavSatFix@gz.msgs.NavSat',
-            "/world/mecanum_drive/model/vehicle_blue/link/lidar_link/sensor/lidar_3d/points@sensor_msgs/msg/PointCloud2@gz.msgs.PointCloudPacked",
+            "/world/mecanum_drive/model/vehicle_blue/link/lidar_link/sensor/lidar_3d/scan/points@sensor_msgs/msg/PointCloud2@gz.msgs.PointCloudPacked",
         ],
         output='screen'
     )
@@ -42,12 +42,21 @@ def generate_launch_description():
         output='screen'
     )
 
+    lidar_2d_node = Node(
+        package='autonomous_vehicles',
+        executable='lidar_2d_node',
+        name='lidar_2d_node',
+        output='screen'
+    )
+
+
     gps_node = Node(
-        package='autonomous_vehicles',  # tu wpisz swój package z SegmentationNode
-        executable='lidar_node',  # nazwa executable z setup.py / entry_point
+        package='autonomous_vehicles',
+        executable='gps_node',
         name='gps_node',
         output='screen'
     )
+
 
     control_node = Node(
         package='autonomous_vehicles',
@@ -62,6 +71,7 @@ def generate_launch_description():
         gz_bridge,
         image_node,
         lidar_node,
+        lidar_2d_node,
         gps_node,
         control_node
     ])

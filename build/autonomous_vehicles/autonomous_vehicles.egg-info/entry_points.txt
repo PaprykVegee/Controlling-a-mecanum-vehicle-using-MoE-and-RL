@@ -1,0 +1,6 @@
+[console_scripts]
+control_node = autonomous_vehicles.control_node:main
+gps_node = autonomous_vehicles.lidar_node:main
+image_node = autonomous_vehicles.image_node:main
+lidar_node = autonomous_vehicles.lidar_node:main
+

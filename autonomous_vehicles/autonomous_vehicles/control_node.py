@@ -21,6 +21,8 @@ import math
 import time
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSDurabilityPolicy
 
+from pynput import keyboard
+
 # --- Klasa Regulatora PID ---
 class regulatorPID():
     def __init__(self, P, I, D, dt, outlim):
@@ -83,26 +85,16 @@ class ControllerNode(Node):
         self.vx = 0.0 
         
         self.PID = regulatorPID(0.05, 0, 0.02, 0.01, 1.0) 
-        
-        self.left_camera_img = None
-        self.right_camera_img = None
-        self.left_camera_status = False
-        self.right_camera_status = False
 
         self.send_msg_timer = 0.05 
         self.main_timer = 0.05 
-        #lidar
-        self.last_scan = None
-        self.last_scan_time = 0.0
-
-        # podgląd lidara (metry -> piksele)
-        self.lidar_img_size = 600
-        self.lidar_scale = 40.0   # 40 px = 1 m  (dostosuj)
-        self.lidar_max_draw = 12.0
 
         self.cmd_vel_publisher = self.create_publisher(Twist, "/cmd_vel", 10)
 
         self.bridge = CvBridge()
+
+        self.mask = None #pole klasy do trzymania maski obrazu
+        self.lidar_points = None #pole kalsy do trzymnaia pkt 3d lidaru
 
         
         qos = QoSProfile(
@@ -112,8 +104,8 @@ class ControllerNode(Node):
         )
 
         self.create_subscription(
-            PointCloud2,
-            "/world/mecanum_drive/model/vehicle_blue/link/lidar_link/sensor/lidar_3d/points",
+            Float32MultiArray,
+            "/world/mecanum_drive/model/vehicle_blue/link/lidar_link/sensor/lidar_3d/tensor",
             self.lidar_callback,
             qos
         )
@@ -133,6 +125,14 @@ class ControllerNode(Node):
             10
         )
 
+        self.cmd_vel_publisher = self.create_publisher(
+            Twist, 
+            "/cmd_vel", 
+            10
+        )
+
+        self.manual_control()
+
 
         self.get_logger().info("Camera viewer and controller started.")
 
@@ -150,35 +150,27 @@ class ControllerNode(Node):
 
         color_mask = cv2.applyColorMap(mask_class * 32, cv2.COLORMAP_JET)
 
+        self.get_logger().info(f"Odebrano {mask.shape} maski")
+
+        self.mask = color_mask
+
         cv2.imshow("Segmentation Mask", color_mask)
         cv2.waitKey(1)
 
 
-    def lidar_callback(self, msg: PointCloud2):
-        self.get_logger().info(f"Otrzymano wiadomość LiDAR 3D z {msg.width} punktami")
+    def lidar_callback(self, msg: Float32MultiArray):
         data = np.array(msg.data, dtype=np.float32)
-        
+
         if data.size % 3 != 0:
             self.get_logger().warn("Liczba elementów nie dzieli się przez 3!")
             return
-        
+
         points = data.reshape((-1, 3))
 
-        self.get_logger().info(f"Odebrano {points.shape[0]} punktów LiDAR")
+        self.lidar_points = points
 
-        N = 600
-        img = np.zeros((N, N, 3), dtype=np.uint8)
-        cx, cy = N//2, N//2
-        scale = 40.0 
+        self.get_logger().info(f"Odebrano {points.shape} punktów LiDAR")
 
-        for x, y, z in points:
-            px = int(cx + x*scale)
-            py = int(cy - y*scale) 
-            if 0 <= px < N and 0 <= py < N:
-                img[py, px] = (0, 255, 0)
-
-        cv2.imshow("LiDAR 3D Projection XY", img)
-        cv2.waitKey(1)
   
 
     def gps_callback(self, msg: PointStamped):
@@ -188,41 +180,97 @@ class ControllerNode(Node):
         
         self.get_logger().info(f"XYZ = ({x:.3f}, {y:.3f}, {z:.3f}), frame={msg.header.frame_id}")
 
+
+    def lidar_to_colored_image(self, img_size=600, scale=40.0):
+        if self.lidar_points is None or self.mask is None:
+            return None
         
-    def show_lidar_cloud(self):
-        if self.last_scan is None:
-            return
+        np.save(r"/home/developer/ros2_ws/src/UNET_trening/lidar_data.npy", self.lidar_points)
+        np.save(r"/home/developer/ros2_ws/src/UNET_trening/mask.npy", self.mask)
 
-        msg = self.last_scan
-        N = self.lidar_img_size
-        img = np.zeros((N, N, 3), dtype=np.uint8)
+        # filtrujemy NaN i inf
+        mask_valid = np.isfinite(self.lidar_points).all(axis=1)
+        points = self.lidar_points[mask_valid]
 
-        cx, cy = N // 2, N // 2
+        N = img_size
+        cx, cy = N//2, N//2
+        output = np.zeros((N, N, 3), dtype=np.uint8)
 
-        cv2.line(img, (0, cy), (N, cy), (60, 60, 60), 1)
-        cv2.line(img, (cx, 0), (cx, N), (60, 60, 60), 1)
+        H, W, C = self.mask.shape
 
-        angle = msg.angle_min
-        for r in msg.ranges:
-            if math.isfinite(r) and msg.range_min <= r <= min(msg.range_max, self.lidar_max_draw):
-                x = r * math.cos(angle)
-                y = r * math.sin(angle)
+        for x, y, z in points:
+            px = int(cx + x*scale)
+            py = int(cy - y*scale)
 
-                px = int(cx + x * self.lidar_scale)
-                py = int(cy - y * self.lidar_scale)  # minus, bo obraz ma y w dół
+            if 0 <= px < N and 0 <= py < N:
+                mask_x = int(px / N * W)
+                mask_y = int(py / N * H)
 
-                if 0 <= px < N and 0 <= py < N:
-                    img[py, px] = (0, 255, 0)
-            angle += msg.angle_increment
+                color = self.mask[mask_y, mask_x, 0:3]
+                color = np.clip(color, 0, 255).astype(np.uint8)
+                output[py, px] = color
 
-        cv2.putText(img, f"LiDAR frame: {msg.header.frame_id}", (10, 25),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1)
-        cv2.imshow("LiDAR Point Cloud (2D)", img)
+        return output
+
 
 
         
     def control_loop(self):
-        pass
+        self.get_logger().info(f"test")
+
+        img_colored = self.lidar_to_colored_image()
+        if img_colored is not None:
+            cv2.imshow("LiDAR Colored by Mask", img_colored)
+            cv2.waitKey(1)
+
+
+
+    def manual_control(self):
+
+        self.twist = Twist()
+        self.manual_enabled = True
+
+        def on_press(key):
+            try:
+                k = key.char.lower()
+            except:
+                k = str(key)
+
+            if k == 'w':
+                self.twist.linear.x = 2.0
+            elif k == 's':
+                self.twist.linear.x = -2.0
+            elif k == 'a':
+                self.twist.angular.z = 0.6
+            elif k == 'd':
+                self.twist.angular.z = -0.6
+            elif k == ' ':
+                self.twist.linear.x = 0.0
+                self.twist.angular.z = 0.0
+            elif k == 'q':
+                self.manual_enabled = False
+                return False  # stop listener
+
+            self.cmd_vel_publisher.publish(self.twist)
+
+        def on_release(key):
+            if hasattr(key, 'char'):
+                k = key.char.lower()
+
+                # reset ruchu do przodu/tyłu
+                if k in ['w', 's']:
+                    self.twist.linear.x = 0.0
+
+                # reset skręcania
+                if k in ['a', 'd']:
+                    self.twist.angular.z = 0.0
+
+                self.cmd_vel_publisher.publish(self.twist)
+
+
+        # uruchom listener w osobnym wątku
+        listener = keyboard.Listener(on_press=on_press, on_release=on_release)
+        listener.start()
 
 
 

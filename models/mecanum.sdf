@@ -486,7 +486,7 @@
 
 <!-- ______ Lidar ______ --> 
 <link name="lidar_link">
-  <pose>1.1 0 0.4 0 0 0</pose> <!-- --> 
+  <pose>1.1 0 0.6 0 0 0</pose> <!-- --> 
 
   <inertial>
     <mass>0.1</mass>
@@ -514,12 +514,12 @@
   <ray>
     <scan>
       <horizontal>
-        <samples>400</samples>  <!-- możesz zwiększyć dla gęstszej chmury -->
+        <samples>600</samples>  <!-- możesz zwiększyć dla gęstszej chmury -->
         <min_angle>-0.6018333335</min_angle> <!-- -34.5 stopnia -->
         <max_angle>0.6018333335</max_angle>  <!-- +34.5 stopnia -->
       </horizontal>
       <vertical>
-        <samples>16</samples>
+        <samples>64</samples>
         <min_angle>-0.338</min_angle> <!-- -19.35 stopnia -->
         <max_angle>0.338</max_angle>  <!-- +19.35 stopnia -->
       </vertical>

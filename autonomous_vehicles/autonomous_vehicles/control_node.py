@@ -23,6 +23,8 @@ from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSDurabilityPolicy
 
 from pynput import keyboard
 
+from scipy.spatial.transform import Rotation as R
+
 # --- Klasa Regulatora PID ---
 class regulatorPID():
     def __init__(self, P, I, D, dt, outlim):
@@ -222,6 +224,26 @@ class ControllerNode(Node):
         if img_colored is not None:
             cv2.imshow("LiDAR Colored by Mask", img_colored)
             cv2.waitKey(1)
+
+  # ta fucje trzeba poprawic torche bo te pkt nie lapane idelanie tak jak bym sobie tego zyczyl
+    def lidar_to_colored_points(lidar, image, 
+                                horizontal_samples=600, vertical_samples=16,
+                                dx=0.0, dy=0.0, dz=10.0,
+                                roll=0.0, pitch=0.0, yaw=0.0):
+
+        rot = R.from_euler('xyz', [roll, pitch, yaw]).as_matrix()
+
+        lidar_cam = (rot @ lidar.T).T + np.array([dx, dy, dz])
+        x, y, z = lidar_cam[:,0], lidar_cam[:,1], lidar_cam[:,2]
+
+        mask_resized = cv2.resize(image, (horizontal_samples, vertical_samples), interpolation=cv2.INTER_NEAREST)
+        mask_resized = np.flipud(mask_resized)
+        mask_resized = np.fliplr(mask_resized)
+
+        colors_arr = mask_resized.reshape(-1, 3) / 255.0
+        colors = ['rgb({},{},{})'.format(int(r*255), int(g*255), int(b*255)) for r,g,b in colors_arr]
+        
+        return x, y, z, colors
 
 
 

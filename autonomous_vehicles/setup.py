@@ -26,6 +26,7 @@ setup(
             'image_node = autonomous_vehicles.image_node:main',
             'lidar_node = autonomous_vehicles.lidar_node:main',
             'lidar_2d_node = autonomous_vehicles.lidar_2d_node:main',
+            'offroad_checker = autonomous_vehicles.offroad_checker:main',
             'gps_node = autonomous_vehicles.gps_node:main'
 
         ],

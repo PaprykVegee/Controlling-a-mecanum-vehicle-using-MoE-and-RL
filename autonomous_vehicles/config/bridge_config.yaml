@@ -30,3 +30,9 @@ bridges:
   - topic: /world/mecanum_drive/model/vehicle_blue/link/lidar_link/sensor/lidar/scan
     type: sensor_msgs/msg/LaserScan
     gz_type: gz.msgs.LaserScan
+  
+  - topic: /model/vehicle_blue/odometry
+    type: nav_msgs/msg/Odometry
+    gz_type: gz.msgs.Odometry
+
+

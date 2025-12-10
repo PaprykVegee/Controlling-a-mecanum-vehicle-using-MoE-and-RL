@@ -183,54 +183,10 @@ class ControllerNode(Node):
         self.get_logger().info(f"XYZ = ({x:.3f}, {y:.3f}, {z:.3f}), frame={msg.header.frame_id}")
 
 
-    def lidar_to_colored_image(self, img_size=600, scale=40.0):
-        if self.lidar_points is None or self.mask is None:
-            return None
-        
-        np.save(r"/home/developer/ros2_ws/src/UNET_trening/lidar_data.npy", self.lidar_points)
-        np.save(r"/home/developer/ros2_ws/src/UNET_trening/mask.npy", self.mask)
-
-        # filtrujemy NaN i inf
-        mask_valid = np.isfinite(self.lidar_points).all(axis=1)
-        points = self.lidar_points[mask_valid]
-
-        N = img_size
-        cx, cy = N//2, N//2
-        output = np.zeros((N, N, 3), dtype=np.uint8)
-
-        H, W, C = self.mask.shape
-
-        for x, y, z in points:
-            px = int(cx + x*scale)
-            py = int(cy - y*scale)
-
-            if 0 <= px < N and 0 <= py < N:
-                mask_x = int(px / N * W)
-                mask_y = int(py / N * H)
-
-                color = self.mask[mask_y, mask_x, 0:3]
-                color = np.clip(color, 0, 255).astype(np.uint8)
-                output[py, px] = color
-
-        return output
-
-
-
-        
-    def control_loop(self):
-        self.get_logger().info(f"test")
-
-        img_colored = self.lidar_to_colored_image()
-        if img_colored is not None:
-            cv2.imshow("LiDAR Colored by Mask", img_colored)
-            cv2.waitKey(1)
-
-  # ta fucje trzeba poprawic torche bo te pkt nie lapane idelanie tak jak bym sobie tego zyczyl
-    def lidar_to_colored_points(lidar, image, 
-                                horizontal_samples=600, vertical_samples=16,
-                                dx=0.0, dy=0.0, dz=10.0,
+    def lidar_to_colored_points(self, lidar, image, 
+                                horizontal_samples=400, vertical_samples=64,
+                                dx=0.0, dy=0.0, dz=0.0,
                                 roll=0.0, pitch=0.0, yaw=0.0):
-
         rot = R.from_euler('xyz', [roll, pitch, yaw]).as_matrix()
 
         lidar_cam = (rot @ lidar.T).T + np.array([dx, dy, dz])
@@ -242,8 +198,52 @@ class ControllerNode(Node):
 
         colors_arr = mask_resized.reshape(-1, 3) / 255.0
         colors = ['rgb({},{},{})'.format(int(r*255), int(g*255), int(b*255)) for r,g,b in colors_arr]
+
+        valid_idx = ~(np.isnan(x) | np.isnan(y) | np.isnan(z))
+        x = x[valid_idx]
+        y = y[valid_idx]
+        z = z[valid_idx]
+        colors = [c for i, c in enumerate(colors) if valid_idx[i]]
         
         return x, y, z, colors
+
+
+    def lidar_to_img_top(self, x, y, colors, img_size=(800, 800), marker_size=1):
+        H, W = img_size
+        img_array = np.zeros((H, W, 3), dtype=np.uint8)
+
+        x_norm = (x - np.min(x)) / (np.max(x) - np.min(x)) * (W-1)
+        y_norm = (y - np.min(y)) / (np.max(y) - np.min(y)) * (H-1)
+
+        y_norm = H - 1 - y_norm
+        
+        for xi, yi, color in zip(x_norm, y_norm, colors):
+            r, g, b = [int(c) for c in color[4:-1].split(',')]
+            xi, yi = int(xi), int(yi)
+            x_min = max(xi - marker_size//2, 0)
+            x_max = min(xi + marker_size//2 + 1, W)
+            y_min = max(yi - marker_size//2, 0)
+            y_max = min(yi + marker_size//2 + 1, H)
+            img_array[y_min:y_max, x_min:x_max] = [r, g, b]
+        img_array = np.rot90(img_array)
+        
+        cv2.imshow("Test", img_array)
+        
+    def control_loop(self):
+        self.get_logger().info(f"test")
+
+        # img_colored = self.lidar_to_colored_image()
+        # if img_colored is not None:
+        #     cv2.imshow("LiDAR Colored by Mask", img_colored)
+        #     cv2.waitKey(1)
+
+        if self.lidar_points is not None and self.mask is not None:
+            if self.mask.size == 0:
+                self.get_logger().warn("Maska jest pusta, nie można przypisać kolorów")
+            else:
+                x, y, z, colors_arr = self.lidar_to_colored_points(self.lidar_points, self.mask)
+                self.lidar_to_img_top(x, y, colors_arr)
+
 
 
 

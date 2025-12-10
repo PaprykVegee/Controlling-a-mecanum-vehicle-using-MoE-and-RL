@@ -7,29 +7,29 @@ import sensor_msgs_py.point_cloud2 as pc2
 import cv2
 
 
-def lidar_to_image(points, scale=50, img_size=500):
-    """
-    Konwertuje chmurę punktów 3D na obraz 2D do wyświetlenia w OpenCV.
-    points: numpy array [N,3]
-    scale: ile pikseli na 1 metr
-    img_size: rozmiar obrazu w pikselach (kwadrat)
-    """
-    img = np.zeros((img_size, img_size), dtype=np.uint8)
+# def lidar_to_image(points, scale=50, img_size=500):
+#     """
+#     Konwertuje chmurę punktów 3D na obraz 2D do wyświetlenia w OpenCV.
+#     points: numpy array [N,3]
+#     scale: ile pikseli na 1 metr
+#     img_size: rozmiar obrazu w pikselach (kwadrat)
+#     """
+#     img = np.zeros((img_size, img_size), dtype=np.uint8)
 
-    x = points[:, 0]
-    y = points[:, 1]
+#     x = points[:, 0]
+#     y = points[:, 1]
 
-    px = (x * scale + img_size // 2).astype(np.int32)
-    py = (y * scale + img_size // 2).astype(np.int32)
+#     px = (x * scale + img_size // 2).astype(np.int32)
+#     py = (y * scale + img_size // 2).astype(np.int32)
 
-    mask = (px >= 0) & (px < img_size) & (py >= 0) & (py < img_size)
-    px = px[mask]
-    py = py[mask]
+#     mask = (px >= 0) & (px < img_size) & (py >= 0) & (py < img_size)
+#     px = px[mask]
+#     py = py[mask]
 
-    img[py, px] = 255  # biały punkt
+#     img[py, px] = 255  # biały punkt
 
-    img = cv2.flip(img, 0)
-    return img
+#     img = cv2.flip(img, 0)
+#     return img
 
 class LidarNode(Node):
     def __init__(self):
@@ -62,9 +62,9 @@ class LidarNode(Node):
         arr = Float32MultiArray()
         arr.data = points.flatten().tolist()
 
-        img = lidar_to_image(points)
-        cv2.imshow("LiDAR top-down", img)
-        cv2.waitKey(1)
+        # img = lidar_to_image(points)
+        # cv2.imshow("LiDAR top-down", img)
+        # cv2.waitKey(1)
         self.lidar_pub.publish(arr)
 
 

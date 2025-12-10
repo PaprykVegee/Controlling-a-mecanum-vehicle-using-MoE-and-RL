@@ -515,7 +515,7 @@
   <ray>
     <scan>
       <horizontal>
-        <samples>600</samples>  <!-- możesz zwiększyć dla gęstszej chmury -->
+        <samples>400</samples>  <!-- możesz zwiększyć dla gęstszej chmury -->
         <min_angle>-0.6018333335</min_angle> <!-- -34.5 stopnia -->
         <max_angle>0.6018333335</max_angle>  <!-- +34.5 stopnia -->
       </horizontal>

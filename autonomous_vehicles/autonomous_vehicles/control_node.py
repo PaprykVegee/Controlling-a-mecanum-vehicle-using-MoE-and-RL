@@ -24,30 +24,7 @@ from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSDurabilityPolicy
 from pynput import keyboard
 
 from scipy.spatial.transform import Rotation as R
-
-# --- Klasa Regulatora PID ---
-class regulatorPID():
-    def __init__(self, P, I, D, dt, outlim):
-        self.P = P
-        self.I = I
-        self.D = D
-        self.dt = dt
-        self.outlim = outlim
-        self.x_prev = 0 
-        self.x_sum = 0
-
-    def output(self, x):
-        
-        P = self.P * x
-        if np.abs(x) < self.outlim: 
-            self.x_sum += self.I * x * self.dt
-        D = self.D * (x - self.x_prev) / self.dt
-        out = P + self.x_sum + D
-        self.x_prev = x
-        if out > self.outlim: out = self.outlim
-        elif out < -self.outlim: out = -self.outlim
-        
-        return out
+import re
     
 def get_yellow_centroids(frame, visu=True):
     frame_hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -85,8 +62,6 @@ class ControllerNode(Node):
         
         self.x = 0 
         self.vx = 0.0 
-        
-        self.PID = regulatorPID(0.05, 0, 0.02, 0.01, 1.0) 
 
         self.send_msg_timer = 0.05 
         self.main_timer = 0.05 
@@ -120,18 +95,16 @@ class ControllerNode(Node):
             10
         )
 
-        self.create_subscription(
-            PointStamped,
-			"/world/mecanum_drive/model/vehicle_blue/link/gps_link/sensor/gps/position_xyz",
-            self.gps_callback,
-            10
-        )
-
         self.cmd_vel_publisher = self.create_publisher(
             Twist, 
             "/cmd_vel", 
             10
         )
+
+        # publisher przetworzonych danych dla wrapera
+        # self.color_lidar_publisher = self.create_publisher(
+
+        # )
 
         self.manual_control()
 
@@ -140,24 +113,24 @@ class ControllerNode(Node):
 
         self.timer = self.create_timer(self.main_timer, self.control_loop)
 
-        self.model = EvalModel(r"/home/developer/ros2_ws/src/UNET_trening/best-unet-epoch=05-val_dice=0.9838.ckpt")
-        # ---
         self.stitcher = cv2.Stitcher_create()
 
     def mask_callback(self, msg: Float32MultiArray):
         dims = [dim.size for dim in msg.layout.dim]
         mask = np.array(msg.data, dtype=np.float32).reshape(dims)
-
-        mask_class = np.argmax(mask, axis=2).astype(np.uint8) 
-
-        color_mask = cv2.applyColorMap(mask_class * 32, cv2.COLORMAP_JET)
-
-        self.get_logger().info(f"Odebrano {mask.shape} maski")
-
-        self.mask = color_mask
-
-        cv2.imshow("Segmentation Mask", color_mask)
+        
+        mask_class = np.argmax(mask, axis=2).astype(np.uint8)  
+        
+        num_classes = mask.shape[2]  
+        mask_scaled = (mask_class * (255 // max(1, num_classes - 1))).astype(np.uint8)
+        
+        self.get_logger().info(f"Odebrano maskę o rozmiarze {mask.shape}")
+        
+        self.mask = mask_scaled
+        
+        cv2.imshow("Segmentation Mask (Gray)", mask_scaled)
         cv2.waitKey(1)
+
 
 
     def lidar_callback(self, msg: Float32MultiArray):
@@ -173,7 +146,6 @@ class ControllerNode(Node):
 
         self.get_logger().info(f"Odebrano {points.shape} punktów LiDAR")
 
-  
 
     def gps_callback(self, msg: PointStamped):
         x = msg.point.x
@@ -182,69 +154,62 @@ class ControllerNode(Node):
         
         self.get_logger().info(f"XYZ = ({x:.3f}, {y:.3f}, {z:.3f}), frame={msg.header.frame_id}")
 
+    def lidar_to_image_and_depth(self, lidar, mask,
+                                horizontal_min=-0.6018333335,
+                                horizontal_max=0.6018333335,
+                                vertical_min=-0.338,
+                                vertical_max=0.338):
+        H, W = mask.shape[:2]  
 
-    def lidar_to_colored_points(self, lidar, image, 
-                                horizontal_samples=400, vertical_samples=64,
-                                dx=0.0, dy=0.0, dz=0.0,
-                                roll=0.0, pitch=0.0, yaw=0.0):
-        rot = R.from_euler('xyz', [roll, pitch, yaw]).as_matrix()
+        valid = ~np.isnan(lidar).any(axis=1) & np.isfinite(lidar).all(axis=1)
+        lidar = lidar[valid]
 
-        lidar_cam = (rot @ lidar.T).T + np.array([dx, dy, dz])
-        x, y, z = lidar_cam[:,0], lidar_cam[:,1], lidar_cam[:,2]
+        x, y, z = lidar[:, 0], lidar[:, 1], lidar[:, 2]
 
-        mask_resized = cv2.resize(image, (horizontal_samples, vertical_samples), interpolation=cv2.INTER_NEAREST)
-        mask_resized = np.flipud(mask_resized)
-        mask_resized = np.fliplr(mask_resized)
+        az = np.arctan2(y, x)
+        el = np.arctan2(z, np.sqrt(x**2 + y**2))
 
-        colors_arr = mask_resized.reshape(-1, 3) / 255.0
-        colors = ['rgb({},{},{})'.format(int(r*255), int(g*255), int(b*255)) for r,g,b in colors_arr]
+        u = ((az - horizontal_min) / (horizontal_max - horizontal_min) * (W - 1)).astype(int)
+        v = ((el - vertical_min) / (vertical_max - vertical_min) * (H - 1)).astype(int)
 
-        valid_idx = ~(np.isnan(x) | np.isnan(y) | np.isnan(z))
-        x = x[valid_idx]
-        y = y[valid_idx]
-        z = z[valid_idx]
-        colors = [c for i, c in enumerate(colors) if valid_idx[i]]
-        
-        return x, y, z, colors
+        u = np.clip(u, 0, W - 1)
+        v = np.clip(v, 0, H - 1)
 
+        image_gray = np.zeros((H, W), dtype=np.uint8)
+        depth_map = np.zeros((H, W), dtype=np.float32)
 
-    def lidar_to_img_top(self, x, y, colors, img_size=(800, 800), marker_size=1):
-        H, W = img_size
-        img_array = np.zeros((H, W, 3), dtype=np.uint8)
+        mask_resized = np.flipud(np.fliplr(mask.copy()))
 
-        x_norm = (x - np.min(x)) / (np.max(x) - np.min(x)) * (W-1)
-        y_norm = (y - np.min(y)) / (np.max(y) - np.min(y)) * (H-1)
+        depth = np.sqrt(x**2 + y**2 + z**2)
 
-        y_norm = H - 1 - y_norm
-        
-        for xi, yi, color in zip(x_norm, y_norm, colors):
-            r, g, b = [int(c) for c in color[4:-1].split(',')]
-            xi, yi = int(xi), int(yi)
-            x_min = max(xi - marker_size//2, 0)
-            x_max = min(xi + marker_size//2 + 1, W)
-            y_min = max(yi - marker_size//2, 0)
-            y_max = min(yi + marker_size//2 + 1, H)
-            img_array[y_min:y_max, x_min:x_max] = [r, g, b]
-        img_array = np.rot90(img_array)
-        
-        cv2.imshow("Test", img_array)
+        image_gray[v, u] = mask_resized[v, u]
+        depth_map[v, u] = depth
+
+        return np.rot90(image_gray, 2), np.rot90(depth_map, 2)
+
         
     def control_loop(self):
-        self.get_logger().info(f"test")
+        self.get_logger().info("Test control_loop")
 
-        # img_colored = self.lidar_to_colored_image()
-        # if img_colored is not None:
-        #     cv2.imshow("LiDAR Colored by Mask", img_colored)
-        #     cv2.waitKey(1)
+        if self.lidar_points is None or self.mask is None:
+            self.get_logger().warn("Brak danych lidar lub maski")
+            return
 
-        if self.lidar_points is not None and self.mask is not None:
-            if self.mask.size == 0:
-                self.get_logger().warn("Maska jest pusta, nie można przypisać kolorów")
-            else:
-                x, y, z, colors_arr = self.lidar_to_colored_points(self.lidar_points, self.mask)
-                self.lidar_to_img_top(x, y, colors_arr)
+        if self.mask.size == 0:
+            self.get_logger().warn("Maska jest pusta, nie można przypisać kolorów")
+            return
+        img, img_deph = self.lidar_to_image_and_depth(lidar=self.lidar_points, mask=self.mask)
 
+        depth_norm = cv2.normalize(img_deph, None, 0, 255, cv2.NORM_MINMAX)
+        depth_uint8 = depth_norm.astype(np.uint8)
 
+        img_3ch = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+        depth_3ch = cv2.cvtColor(depth_uint8, cv2.COLOR_GRAY2BGR)
+
+        img_combined = cv2.hconcat([img_3ch, depth_3ch])
+
+        cv2.imshow("test", img_combined)
+        cv2.waitKey(1)
 
 
     def manual_control(self):
@@ -271,7 +236,7 @@ class ControllerNode(Node):
                 self.twist.angular.z = 0.0
             elif k == 'q':
                 self.manual_enabled = False
-                return False  # stop listener
+                return False 
 
             self.cmd_vel_publisher.publish(self.twist)
 
@@ -279,18 +244,14 @@ class ControllerNode(Node):
             if hasattr(key, 'char'):
                 k = key.char.lower()
 
-                # reset ruchu do przodu/tyłu
                 if k in ['w', 's']:
                     self.twist.linear.x = 0.0
 
-                # reset skręcania
                 if k in ['a', 'd']:
                     self.twist.angular.z = 0.0
 
                 self.cmd_vel_publisher.publish(self.twist)
 
-
-        # uruchom listener w osobnym wątku
         listener = keyboard.Listener(on_press=on_press, on_release=on_release)
         listener.start()
 

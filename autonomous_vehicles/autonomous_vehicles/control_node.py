@@ -126,7 +126,7 @@ class ControllerNode(Node):
         
         self.get_logger().info(f"Odebrano maskę o rozmiarze {mask.shape}")
         
-        self.mask = mask_scaled
+        self.mask = mask_scaled ##wyslanie
         
         cv2.imshow("Segmentation Mask (Gray)", mask_scaled)
         cv2.waitKey(1)
@@ -142,7 +142,7 @@ class ControllerNode(Node):
 
         points = data.reshape((-1, 3))
 
-        self.lidar_points = points
+        self.lidar_points = points # wyslanie 
 
         self.get_logger().info(f"Odebrano {points.shape} punktów LiDAR")
 

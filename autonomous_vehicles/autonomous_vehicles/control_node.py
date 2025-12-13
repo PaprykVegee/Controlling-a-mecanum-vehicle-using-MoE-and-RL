@@ -185,7 +185,12 @@ class ControllerNode(Node):
         image_gray[v, u] = mask_resized[v, u]
         depth_map[v, u] = depth
 
-        return np.rot90(image_gray, 2), np.rot90(depth_map, 2)
+        image_gray = np.rot90(image_gray, 2)
+        depth_map = np.rot90(depth_map, 2)    
+
+        depth_norm = cv2.normalize(depth_map, None, 0, 255, cv2.NORM_MINMAX) 
+
+        return image_gray, depth_norm
 
         
     def control_loop(self):
@@ -200,11 +205,13 @@ class ControllerNode(Node):
             return
         img, img_deph = self.lidar_to_image_and_depth(lidar=self.lidar_points, mask=self.mask)
 
-        depth_norm = cv2.normalize(img_deph, None, 0, 255, cv2.NORM_MINMAX)
-        depth_uint8 = depth_norm.astype(np.uint8)
+        np.save(r"/home/developer/ros2_ws/src/method_tester/concat_lidar_mask.npy", np.stack([img, img_deph], axis=2))
+
+        #depth_norm = cv2.normalize(img_deph, None, 0, 255, cv2.NORM_MINMAX)
+        #depth_uint8 = depth_norm.astype(np.uint8)
 
         img_3ch = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-        depth_3ch = cv2.cvtColor(depth_uint8, cv2.COLOR_GRAY2BGR)
+        depth_3ch = cv2.cvtColor(img_deph.astype(np.uint8), cv2.COLOR_GRAY2BGR)
 
         img_combined = cv2.hconcat([img_3ch, depth_3ch])
 

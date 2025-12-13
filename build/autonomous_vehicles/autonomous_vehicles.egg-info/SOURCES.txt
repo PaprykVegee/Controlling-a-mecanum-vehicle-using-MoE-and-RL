@@ -2,6 +2,7 @@ setup.cfg
 setup.py
 autonomous_vehicles/Segmetation.py
 autonomous_vehicles/__init__.py
+autonomous_vehicles/agent_net.py
 autonomous_vehicles/car_env.py
 autonomous_vehicles/control_node.py
 autonomous_vehicles/image_node.py

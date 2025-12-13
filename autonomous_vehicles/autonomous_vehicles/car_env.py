@@ -1,45 +1,62 @@
-import gymnasium as gym
-from gymnasium import spaces
+import gym
+from gym import spaces
+
 import numpy as np
 import threading
 import time
-from std_msgs.msg import Bool
+
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import Float32MultiArray
-
+from std_msgs.msg import Float32MultiArray, Bool
+from geometry_msgs.msg import Twist
 from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
 
 
 class GazeboLidarMaskEnv(gym.Env):
-    metadata = {"render_modes": []}
+    """
+    SB3 1.7.0 (Gym 0.21) compatible Env.
+
+    Observation: np.uint8 array of shape (2, H, W)
+      channel 0: lidar-projected mask image (0..255)
+      channel 1: lidar depth (0..255), scaled from meters (0..100m)
+
+    Action: np.float32 array shape (2,)
+      [ v_norm in [0,1], w_norm in [-1,1] ]
+    """
+    metadata = {"render.modes": []}
 
     def __init__(self, H=256, W=256, time_step=0.1, max_steps=500):
         super().__init__()
 
-        self.H, self.W = H, W
+        self.H, self.W = int(H), int(W)
         self.time_step = float(time_step)
         self.max_steps = int(max_steps)
-        self.offroad_flag = False # flaga od wykroczenia poza droge
-        # ---------- Gym spaces ----------
-        # przykładowo: obserwacja = (gray uint8) + (depth float32)
-        self.observation_space = spaces.Dict({
-            "lidar_img": spaces.Box(0, 255, shape=(H, W), dtype=np.uint8),
-            "depth":     spaces.Box(0.0, 100.0, shape=(H, W), dtype=np.float32),
-        })
 
-        # akcja przykładowa (dopasuj do swojego robota)
+        self.offroad_flag = False
+        self.max_lin = 2.0   # [m/s]
+        self.max_ang = 1.0   # [rad/s]
+
+        # ---- Observation space: (C,H,W) = (2,H,W), uint8 for images ----
+        self.observation_space = spaces.Box(
+            low=0,
+            high=255,
+            shape=(2, self.H, self.W),
+            dtype=np.uint8
+        )
+
+        # ---- Action space ----
         self.action_space = spaces.Box(
             low=np.array([0.0, -1.0], dtype=np.float32),
             high=np.array([1.0,  1.0], dtype=np.float32),
             dtype=np.float32
         )
 
-        # ---------- ROS2 init ----------
+        # ---- ROS2 init ----
         if not rclpy.ok():
             rclpy.init(args=None)
 
-        self.node = Node("gym_lidar_mask_env")
+        # unikalna nazwa node (żeby nie kolidować przy kilku uruchomieniach)
+        self.node = Node(f"gym_lidar_mask_env_{int(time.time()*1000)}")
 
         qos = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
@@ -47,17 +64,16 @@ class GazeboLidarMaskEnv(gym.Env):
             depth=5
         )
 
-        # ---------- shared state ----------
+        # ---- shared state ----
         self._lock = threading.Lock()
 
         self.lidar_points = None  # (N,3) float32
-        self.mask = None          # (H,W) uint8
+        self.mask = None          # (H,W) uint8 already scaled 0..255
 
-        # liczniki świeżości (kluczowe dla RL)
         self._lidar_seq = 0
         self._mask_seq = 0
 
-        # ---------- subscriptions ----------
+        # ---- subscriptions ----
         self.node.create_subscription(
             Float32MultiArray,
             "/world/mecanum_drive/model/vehicle_blue/link/lidar_link/sensor/lidar_3d/tensor",
@@ -72,15 +88,27 @@ class GazeboLidarMaskEnv(gym.Env):
             qos
         )
 
-        self.offroad_sub = self.node.create_subscription(
+        self.node.create_subscription(
             Bool,
             "/off_road",
             self._offroad_cb,
             10
         )
 
-        # krok epizodu
+        # publisher cmd_vel
+        self.cmd_pub = self.node.create_publisher(Twist, "/cmd_vel", 10)
+
         self.step_count = 0
+
+    # ---------------- control ----------------
+    def _send_cmd(self, v, w):
+        msg = Twist()
+        msg.linear.x = float(v)
+        msg.angular.z = float(w)
+        self.cmd_pub.publish(msg)
+
+    def _offroad_cb(self, msg: Bool):
+        self.offroad_flag = bool(msg.data)
 
     # ---------------- callbacks ----------------
     def _lidar_callback(self, msg: Float32MultiArray):
@@ -95,37 +123,48 @@ class GazeboLidarMaskEnv(gym.Env):
             self._lidar_seq += 1
 
     def _mask_callback(self, msg: Float32MultiArray):
+        dims = [dim.size for dim in msg.layout.dim]
         data = np.array(msg.data, dtype=np.float32)
 
-        # Wariant A: maska przychodzi jako H*W (1D) -> reshape
-        if data.size == self.H * self.W:
-            mask = data.reshape((self.H, self.W))
-        else:
-            # jeżeli masz layout.dim w msg, możesz z niego odtworzyć shape
-            # tutaj uproszczenie: fallback
-            self.node.get_logger().warn(f"Mask: nieoczekiwany rozmiar {data.size}, oczekuję {self.H*self.W}")
+        try:
+            mask_logits = data.reshape(dims)  # (H, W, C)
+        except Exception as e:
+            self.node.get_logger().warn(
+                f"Mask: reshape fail dims={dims}, data.size={data.size}: {e}"
+            )
             return
 
-        # normalizacja do uint8 0..255
-        mask = np.clip(mask, 0.0, 1.0) * 255.0
-        mask = mask.astype(np.uint8)
+        if mask_logits.ndim != 3:
+            self.node.get_logger().warn(f"Mask: oczekuję 3D (H,W,C), mam {mask_logits.shape}")
+            return
+
+        mask_class = np.argmax(mask_logits, axis=2).astype(np.uint8)  # (H, W)
+        num_classes = int(mask_logits.shape[2])
+
+        # skala do 0..255 (żeby było obrazowo)
+        mask_scaled = (mask_class * (255 // max(1, num_classes - 1))).astype(np.uint8)
 
         with self._lock:
-            self.mask = mask
+            self.mask = mask_scaled
             self._mask_seq += 1
 
-    # ---------------- lidar->image/depth ----------------
-    def lidar_to_image_and_depth(self, lidar, mask,
-                                horizontal_min=-0.6018333335,
-                                horizontal_max=0.6018333335,
-                                vertical_min=-0.338,
-                                vertical_max=0.338):
+    # ---------------- lidar -> (mask_img, depth_u8) ----------------
+    def lidar_to_image_and_depth_u8(
+        self,
+        lidar,
+        mask,
+        horizontal_min=-0.6018333335,
+        horizontal_max=0.6018333335,
+        vertical_min=-0.338,
+        vertical_max=0.338,
+        depth_max_m=100.0
+    ):
         H, W = mask.shape[:2]
 
         valid = ~np.isnan(lidar).any(axis=1) & np.isfinite(lidar).all(axis=1)
         lidar = lidar[valid]
         if lidar.shape[0] == 0:
-            return np.zeros((H, W), np.uint8), np.zeros((H, W), np.float32)
+            return np.zeros((H, W), np.uint8), np.zeros((H, W), np.uint8)
 
         x, y, z = lidar[:, 0], lidar[:, 1], lidar[:, 2]
 
@@ -138,25 +177,29 @@ class GazeboLidarMaskEnv(gym.Env):
         u = np.clip(u, 0, W - 1)
         v = np.clip(v, 0, H - 1)
 
-        image_gray = np.zeros((H, W), dtype=np.uint8)
+        mask_img = np.zeros((H, W), dtype=np.uint8)
         depth_map = np.zeros((H, W), dtype=np.float32)
 
-        # u Ciebie było flip + rot; zostawiam identyczną logikę
+        # zachowanie jak w Twoim ControllerNode: flip mask
         mask_resized = np.flipud(np.fliplr(mask.copy()))
-        depth = np.sqrt(x**2 + y**2 + z**2)
 
-        image_gray[v, u] = mask_resized[v, u]
+        depth = np.sqrt(x**2 + y**2 + z**2)
+        depth = np.clip(depth, 0.0, float(depth_max_m))
+
+        mask_img[v, u] = mask_resized[v, u]
         depth_map[v, u] = depth
 
-        return image_gray, depth_map
+        # obrót 180° jak w ControllerNode
+        mask_img = np.rot90(mask_img, 2)
+        depth_map = np.rot90(depth_map, 2)
 
-    # ---------------- obs helpers ----------------
+        # depth -> uint8 0..255 (skala stała, nie per-frame)
+        depth_u8 = (depth_map * (255.0 / float(depth_max_m))).astype(np.uint8)
+
+        return mask_img, depth_u8
+
+    # ---------------- obs helper ----------------
     def _get_obs_blocking(self, timeout=1.0, require_new=True, last_lidar_seq=-1, last_mask_seq=-1):
-        """
-        Czeka aż:
-        - będziemy mieli lidar + mask
-        - oraz (jeśli require_new) ich seq będzie większy niż last_*
-        """
         t0 = time.time()
         while time.time() - t0 < timeout:
             rclpy.spin_once(self.node, timeout_sec=0.02)
@@ -175,60 +218,60 @@ class GazeboLidarMaskEnv(gym.Env):
                 lidar_seq = self._lidar_seq
                 mask_seq = self._mask_seq
 
-            lidar_img, depth = self.lidar_to_image_and_depth(lidar, mask)
-            return {"lidar_img": lidar_img, "depth": depth}, lidar_seq, mask_seq
+            mask_img, depth_u8 = self.lidar_to_image_and_depth_u8(lidar, mask)
 
-        # timeout -> zwróć “bezpieczne” zera
-        obs = {
-            "lidar_img": np.zeros((self.H, self.W), dtype=np.uint8),
-            "depth": np.zeros((self.H, self.W), dtype=np.float32),
-        }
+            obs = np.stack([mask_img, depth_u8], axis=0).astype(np.uint8)  # (2,H,W)
+            return obs, lidar_seq, mask_seq
+
+        # fallback
+        obs = np.zeros((2, self.H, self.W), dtype=np.uint8)
         with self._lock:
             return obs, self._lidar_seq, self._mask_seq
 
-    # ---------------- Gym API ----------------
-    def reset(self, *, seed=None, options=None):
-        super().reset(seed=seed)
-        self.step_count = 0
+    # ---------------- reward ----------------
+    def _compute_reward(self):
+        # minimal: kara za offroad, inaczej 0
+        return -1.0 if self.offroad_flag else 0.0
 
-        # ważne: jeśli chcesz wymusić świeże dane po "reset-sytuacji":
+    # ---------------- Gym API (SB3 1.7 expects old gym API) ----------------
+    def reset(self):
+        self.step_count = 0
+        self.offroad_flag = False
+
+        self._send_cmd(0.0, 0.0)
+
         with self._lock:
-            # nie musisz zerować danych, ale warto wymusić require_new
             last_lidar_seq = self._lidar_seq
             last_mask_seq = self._mask_seq
 
-        obs, _, _ = self._get_obs_blocking(timeout=2.0, require_new=True,
-                                           last_lidar_seq=last_lidar_seq, last_mask_seq=last_mask_seq)
-        info = {}
-        return obs, info
+        obs, _, _ = self._get_obs_blocking(
+            timeout=2.0,
+            require_new=True,
+            last_lidar_seq=last_lidar_seq,
+            last_mask_seq=last_mask_seq
+        )
+        return obs
 
     def step(self, action):
         self.step_count += 1
 
-        # 1) Skala/clip akcji (dopasuj do siebie)
+        action = np.asarray(action, dtype=np.float32).reshape(-1)
         v_norm = float(np.clip(action[0], 0.0, 1.0))
         w_norm = float(np.clip(action[1], -1.0, 1.0))
         v = v_norm * self.max_lin
         w = w_norm * self.max_ang
 
-        # 2) ZAPAMIĘTAJ seq PRZED akcją (żeby wymusić świeże dane po akcji)
         with self._lock:
             last_lidar_seq = self._lidar_seq
             last_mask_seq = self._mask_seq
 
-        # 3) Wykonaj akcję w symulacji
-        # Jeśli używasz pause/unpause:
-        self._start_gz()                 # unpause (opcjonalnie)
-        self._send_cmd(v, w)             # publish /cmd_vel
+        self._send_cmd(v, w)
 
-        # 4) Poczekaj dt (symulacja "idzie", callbacki zbierają dane)
+        # odczekaj krok symulacji + spin
         t0 = time.time()
         while time.time() - t0 < self.time_step:
             rclpy.spin_once(self.node, timeout_sec=0.02)
 
-        self._stop_gz()                  # pause (opcjonalnie)
-
-        # 5) Pobierz obserwację "po akcji" (musi być świeższa niż last_*)
         obs, _, _ = self._get_obs_blocking(
             timeout=1.0,
             require_new=True,
@@ -236,31 +279,28 @@ class GazeboLidarMaskEnv(gym.Env):
             last_mask_seq=last_mask_seq
         )
 
-        # 6) Reward + warunki zakończenia (przykład)
-        reward = self._compute_reward(obs)  # lub własna logika
+        reward = float(self._compute_reward())
+        done = bool(self.offroad_flag or (self.step_count >= self.max_steps))
 
-        terminated = False
-        truncated = False
+        info = {
+            "offroad": bool(self.offroad_flag),
+            "step": int(self.step_count),
+            "v_cmd": float(v),
+            "w_cmd": float(w),
+        }
 
-        if self.collision_flag:
-            terminated = True
-
-        if self.destination_reached_flag:
-            terminated = True
-
-        if self.step_count >= self.max_steps:
-            truncated = True
-
-        # jeśli terminated, zwykle truncated = False
-        if terminated:
-            truncated = False
-
-        info = {}
-        return obs, float(reward), terminated, truncated, info
+        return obs, reward, done, info
 
     def close(self):
         try:
+            self._send_cmd(0.0, 0.0)
+        except Exception:
+            pass
+
+        try:
             self.node.destroy_node()
         finally:
+            # UWAGA: jeśli masz inne nody w tym samym procesie, to shutdown tu może przeszkadzać.
+            # Jeśli env jest uruchamiany samodzielnie w procesie treningu — jest OK.
             if rclpy.ok():
                 rclpy.shutdown()

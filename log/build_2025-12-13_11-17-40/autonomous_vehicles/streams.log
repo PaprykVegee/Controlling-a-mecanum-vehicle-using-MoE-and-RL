@@ -1,0 +1,22 @@
+[0.367s] Invoking command in '/home/developer/ros2_ws/src/build/autonomous_vehicles': PYTHONPATH=/home/developer/ros2_ws/src/build/autonomous_vehicles/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/developer/ros2_ws/src/build/autonomous_vehicles/build --no-deps symlink_data
+[0.522s] running develop
+[0.602s] running egg_info
+[0.602s] writing autonomous_vehicles.egg-info/PKG-INFO
+[0.602s] writing dependency_links to autonomous_vehicles.egg-info/dependency_links.txt
+[0.602s] writing entry points to autonomous_vehicles.egg-info/entry_points.txt
+[0.602s] writing requirements to autonomous_vehicles.egg-info/requires.txt
+[0.602s] writing top-level names to autonomous_vehicles.egg-info/top_level.txt
+[0.604s] reading manifest file 'autonomous_vehicles.egg-info/SOURCES.txt'
+[0.605s] writing manifest file 'autonomous_vehicles.egg-info/SOURCES.txt'
+[0.606s] running build_ext
+[0.606s] Creating /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages/autonomous-vehicles.egg-link (link to .)
+[0.607s] Installing control_node script to /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/autonomous_vehicles
+[0.607s] Installing gps_node script to /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/autonomous_vehicles
+[0.607s] Installing image_node script to /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/autonomous_vehicles
+[0.607s] Installing lidar_2d_node script to /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/autonomous_vehicles
+[0.607s] Installing lidar_node script to /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/autonomous_vehicles
+[0.607s] Installing offroad_checker script to /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/autonomous_vehicles
+[0.607s] 
+[0.607s] Installed /home/developer/ros2_ws/src/build/autonomous_vehicles
+[0.607s] running symlink_data
+[0.630s] Invoked command in '/home/developer/ros2_ws/src/build/autonomous_vehicles' returned '0': PYTHONPATH=/home/developer/ros2_ws/src/build/autonomous_vehicles/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/developer/ros2_ws/src/build/autonomous_vehicles/build --no-deps symlink_data

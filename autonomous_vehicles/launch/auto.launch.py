@@ -73,10 +73,10 @@ def generate_launch_description():
         name="offroad_checker",
         output="screen",
         parameters=[{
-            "centerline_file": "/home/developer/ros2_ws/src/xy_gt.txt",
+            "centerline_file": "/home/developer/ros2_ws/src/punkty_shift.txt",
             "road_half_width": 2.0,   # połowa szerokości jezdni (ustaw pod swój tor)
             "margin": 0.1,
-            "stop_on_offroad": False,
+            "stop_on_offroad": True,
             "odom_topic": "/model/vehicle_blue/odometry",
             "cmd_vel_topic": "/cmd_vel",
         }]

@@ -89,7 +89,7 @@
       <self_collide>false</self_collide>
     </model>
     <model name='vehicle_blue' xmlns:gz='http://gazebosim.org/schema'>
-      <pose>0 2 0.32500000000000001 0 0 0</pose>
+      <pose>6 2 0.32500000000000001 0 0 0</pose>
       <link name='chassis'>
         <pose>-0.15142700000000001 0 0.17499999999999999 0 0 0</pose>
 

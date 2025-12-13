@@ -24,6 +24,8 @@ def generate_launch_description():
             '/world/mecanum_drive/model/vehicle_blue/link/lidar_2d_link/sensor/lidar_2d/scan@sensor_msgs/msg/LaserScan@gz.msgs.LaserScan',
             # '/world/mecanum_drive/model/vehicle_blue/link/gps_link/sensor/gps/navsat@sensor_msgs/msg/NavSatFix@gz.msgs.NavSat',
             "/world/mecanum_drive/model/vehicle_blue/link/lidar_link/sensor/lidar_3d/scan/points@sensor_msgs/msg/PointCloud2@gz.msgs.PointCloudPacked",
+            #"/world/mecanum_drive/pose/info@geometry_msgs/msg/PoseArray[gz.msgs.Pose_V",
+            "/model/vehicle_blue/pose@tf2_msgs/msg/TFMessage[gz.msgs.Pose_V",
             "/model/vehicle_blue/odometry@nav_msgs/msg/Odometry@gz.msgs.Odometry",
         ],
         output='screen'
@@ -73,11 +75,12 @@ def generate_launch_description():
         name="offroad_checker",
         output="screen",
         parameters=[{
-            "centerline_file": "/home/developer/ros2_ws/src/punkty_shift.txt",
-            "road_half_width": 2.0,   # połowa szerokości jezdni (ustaw pod swój tor)
+            "centerline_file": "/home/developer/ros2_ws/src/xy.txt",
+            "road_half_width": 2.0,
             "margin": 0.1,
             "stop_on_offroad": True,
-            "odom_topic": "/model/vehicle_blue/odometry",
+            "pose_topic": "/model/vehicle_blue/pose",
+            "frame_contains": "vehicle_blue",
             "cmd_vel_topic": "/cmd_vel",
         }]
     )

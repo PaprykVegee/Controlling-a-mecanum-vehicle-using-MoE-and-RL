@@ -114,8 +114,8 @@ vec_env = make_vec_env(env_fn, n_envs=ENV_PARALLEL)
 model = PPO(
     policy="CnnPolicy",
     env=vec_env,
-    n_steps=1024,
-    batch_size=128,
+    n_steps=512,
+    batch_size=32,
     n_epochs=6,
     learning_rate=1e-4,
     gamma=0.995,

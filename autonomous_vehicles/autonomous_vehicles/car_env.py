@@ -41,6 +41,21 @@ class GazeboLidarMaskEnv(gym.Env):
         self._pose_seq = 0
         self.pose_frame_contains = "vehicle_blue"  # filtr po frame id
 
+
+        #nagroda za jechanie 
+        self.prev_pose_xy = None
+
+        # strojenie reward
+        self.progress_scale = 5.0      # ile nagrody za 1 metr (zacznij 3..10)
+        self.alive_reward = 0.01       # mały bonus za "życie"
+        self.turn_penalty_scale = 0.05 # kara za kręcenie (opcjonalnie)
+        self.offroad_penalty = 10.0    # kara za offroad (zostaje)
+
+
+
+        
+
+
         # ---- offroad ----
         self.offroad_flag = False
 
@@ -74,7 +89,12 @@ class GazeboLidarMaskEnv(gym.Env):
             rclpy.init(args=None)
 
         self.node = Node(f"gym_lidar_mask_env_{int(time.time()*1000)}")
+        # ---- random spawn points ----
+        self.spawn_points = []
+        self.spawn_file = "xy.txt"  # albo pełna ścieżka
+        self.rng = np.random.default_rng()
 
+        self._load_spawn_points(self.spawn_file)
         qos = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
             durability=DurabilityPolicy.VOLATILE,
@@ -131,6 +151,30 @@ class GazeboLidarMaskEnv(gym.Env):
 
         self.step_count = 0
 
+    def _load_spawn_points(self, path: str):
+        pts = []
+        try:
+            with open(path, "r") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    line = line.replace(",", " ")
+                    parts = [p for p in line.split() if p]
+                    if len(parts) >= 2:
+                        x = float(parts[0])
+                        y = float(parts[1])
+                        yaw = float(parts[2]) if len(parts) >= 3 else None
+                        pts.append((x, y, yaw))
+        except Exception as e:
+            self.node.get_logger().warn(f"Nie mogę wczytać spawnów z {path}: {e}")
+
+        self.spawn_points = pts
+        self.node.get_logger().info(f"Wczytano {len(self.spawn_points)} punktów startowych z {path}")
+
+
+
+
     # ---------- utils ----------
     def _yaw_to_quat(self, yaw: float):
         half = 0.5 * float(yaw)
@@ -171,6 +215,8 @@ class GazeboLidarMaskEnv(gym.Env):
         return True
 
     def _wait_for_pose_update(self, timeout=1.0, last_pose_seq=-1):
+        with self._lock:
+            self.prev_pose_xy = self.pose_xy
         t0 = time.time()
         while time.time() - t0 < timeout:
             rclpy.spin_once(self.node, timeout_sec=0.05)
@@ -346,11 +392,28 @@ class GazeboLidarMaskEnv(gym.Env):
     def _compute_reward(self):
         # kara za wyjechanie
         if self.offroad_flag:
-            return -10.0
+            return -float(self.offroad_penalty)
 
-        # nagroda za jazdę: proporcjonalna do prędkości (approx "przejechany dystans" w kroku)
-        v = max(0.0, float(self.last_v_cmd))   # v >= 0 u Ciebie i tak
-        return float(self.speed_reward_scale * v * self.time_step)
+        # postęp = realnie przejechany dystans od poprzedniego kroku
+        with self._lock:
+            cur = self.pose_xy
+            prev = self.prev_pose_xy
+
+        progress = 0.0
+        if cur is not None and prev is not None:
+            dx = float(cur[0] - prev[0])
+            dy = float(cur[1] - prev[1])
+            progress = math.sqrt(dx*dx + dy*dy)
+
+        # aktualizuj prev_pose na następny krok
+        with self._lock:
+            self.prev_pose_xy = cur
+
+        # (opcjonalnie) kara za kręcenie w miejscu
+        turn_pen = self.turn_penalty_scale * abs(float(self.last_w_cmd))
+
+        reward = self.alive_reward + self.progress_scale * progress - turn_pen
+        return float(reward)
 
 
     # ---------- Gym API ----------
@@ -363,6 +426,14 @@ class GazeboLidarMaskEnv(gym.Env):
         with self._lock:
             last_pose_seq = self._pose_seq
         last_offroad_seq = self._offroad_seq
+
+        if len(self.spawn_points) > 0:
+            x, y, yaw = self.spawn_points[self.rng.integers(0, len(self.spawn_points))]
+            self.start_x = float(x)
+            self.start_y = float(y)
+            if yaw is not None:
+                self.start_yaw = float(yaw)
+
 
         self._teleport_to_start()
 

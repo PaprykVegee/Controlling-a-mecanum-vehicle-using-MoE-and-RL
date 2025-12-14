@@ -1,0 +1,27 @@
+/home/developer/.local/lib/python3.10/site-packages/stable_baselines3/common/vec_env/vec_monitor.py:44: UserWarning: The environment is already wrapped with a `Monitor` wrapperbut you are wrapping it with a `VecMonitor` wrapper, the `Monitor` statistics will beoverwritten by the `VecMonitor` ones.
+  warnings.warn(
+Using cuda device
+Traceback (most recent call last):
+  File "/home/developer/ros2_ws/src/autonomous_vehicles/autonomous_vehicles/train_agent.py", line 165, in <module>
+    model.learn(total_timesteps=TOTAL_STEPS, callback=wandb_callback)
+  File "/home/developer/.local/lib/python3.10/site-packages/stable_baselines3/ppo/ppo.py", line 307, in learn
+    return super().learn(
+  File "/home/developer/.local/lib/python3.10/site-packages/stable_baselines3/common/on_policy_algorithm.py", line 236, in learn
+    total_timesteps, callback = self._setup_learn(
+  File "/home/developer/.local/lib/python3.10/site-packages/stable_baselines3/common/base_class.py", line 416, in _setup_learn
+    self._logger = utils.configure_logger(self.verbose, self.tensorboard_log, tb_log_name, reset_num_timesteps)
+  File "/home/developer/.local/lib/python3.10/site-packages/stable_baselines3/common/utils.py", line 198, in configure_logger
+    raise ImportError("Trying to log data to tensorboard but tensorboard is not installed.")
+ImportError: Trying to log data to tensorboard but tensorboard is not installed.
+Traceback (most recent call last):
+  File "/home/developer/ros2_ws/src/autonomous_vehicles/autonomous_vehicles/train_agent.py", line 165, in <module>
+    model.learn(total_timesteps=TOTAL_STEPS, callback=wandb_callback)
+  File "/home/developer/.local/lib/python3.10/site-packages/stable_baselines3/ppo/ppo.py", line 307, in learn
+    return super().learn(
+  File "/home/developer/.local/lib/python3.10/site-packages/stable_baselines3/common/on_policy_algorithm.py", line 236, in learn
+    total_timesteps, callback = self._setup_learn(
+  File "/home/developer/.local/lib/python3.10/site-packages/stable_baselines3/common/base_class.py", line 416, in _setup_learn
+    self._logger = utils.configure_logger(self.verbose, self.tensorboard_log, tb_log_name, reset_num_timesteps)
+  File "/home/developer/.local/lib/python3.10/site-packages/stable_baselines3/common/utils.py", line 198, in configure_logger
+    raise ImportError("Trying to log data to tensorboard but tensorboard is not installed.")
+ImportError: Trying to log data to tensorboard but tensorboard is not installed.

@@ -8,7 +8,10 @@ from stable_baselines3.common.env_util import make_vec_env
 
 import gym
 import numpy as np
-
+import wandb
+from wandb.integration.sb3 import WandbCallback
+from stable_baselines3.common.vec_env import VecMonitor
+import os
 from car_env import GazeboLidarMaskEnv
 
 
@@ -18,7 +21,30 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 TOTAL_STEPS = 1_000_000
 MAX_STEPS_PER_EPISODE = 1800
 TIME_STEP = 0.1
+config = {
+    "algo": "PPO",
+    "total_timesteps": TOTAL_STEPS,
+    "max_steps_per_episode": MAX_STEPS_PER_EPISODE,
+    "n_steps": 512,
+    "batch_size": 32,
+    "n_epochs": 6,
+    "lr": 1e-4,
+    "gamma": 0.995,
+    "env_parallel": ENV_PARALLEL,
+}
 
+wandb.login()
+run = wandb.init(
+    project="MOE",
+    entity="deep-neural-network-course",
+    name='MOE1', # Name
+    settings=wandb.Settings(save_code=False),
+    config=config,
+    sync_tensorboard=True,
+    monitor_gym=False,
+    save_code=False,
+    mode='online'
+)
 
 unet = smp.Unet(
     encoder_name="resnet18",
@@ -108,8 +134,11 @@ policy_kwargs = dict(
     net_arch=head_arch
 )
 
-env_fn = lambda: GazeboLidarMaskEnv()
+env_fn = lambda: GazeboLidarMaskEnv(max_steps=MAX_STEPS_PER_EPISODE, time_step=TIME_STEP)
 vec_env = make_vec_env(env_fn, n_envs=ENV_PARALLEL)
+vec_env = VecMonitor(vec_env)
+
+tb_dir = os.path.join("tb_runs", run.id)
 
 model = PPO(
     policy="CnnPolicy",
@@ -121,11 +150,19 @@ model = PPO(
     gamma=0.995,
     policy_kwargs=policy_kwargs,
     device=DEVICE,
-    verbose=2
+    verbose=2,
+    tensorboard_log=tb_dir,   
 )
 
 
-model.learn(total_timesteps=TOTAL_STEPS)
+wandb_callback = WandbCallback(
+    model_save_path=os.path.join("wandb_models", run.id),
+    model_save_freq=50_000,   # co ile kroków zapis checkpointu
+    verbose=2,
+)
+
+model.learn(total_timesteps=TOTAL_STEPS, callback=wandb_callback)
 
 
 model.save("ppo_gazebo_unet_encoder")
+run.finish()

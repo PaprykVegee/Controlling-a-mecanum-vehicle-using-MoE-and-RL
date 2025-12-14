@@ -1,0 +1,178 @@
+/home/developer/.local/lib/python3.10/site-packages/stable_baselines3/common/vec_env/vec_monitor.py:44: UserWarning: The environment is already wrapped with a `Monitor` wrapperbut you are wrapping it with a `VecMonitor` wrapper, the `Monitor` statistics will beoverwritten by the `VecMonitor` ones.
+  warnings.warn(
+Using cuda device
+Logging to tb_runs/1y4s40on/PPO_1
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 38.9     |
+|    ep_rew_mean     | 10       |
+| time/              |          |
+|    fps             | 4        |
+|    iterations      | 1        |
+|    time_elapsed    | 125      |
+|    total_timesteps | 512      |
+---------------------------------
+------------------------------------------
+| rollout/                |              |
+|    ep_len_mean          | 44           |
+|    ep_rew_mean          | 12.4         |
+| time/                   |              |
+|    fps                  | 4            |
+|    iterations           | 2            |
+|    time_elapsed         | 253          |
+|    total_timesteps      | 1024         |
+| train/                  |              |
+|    approx_kl            | 0.0012121152 |
+|    clip_fraction        | 0            |
+|    clip_range           | 0.2          |
+|    entropy_loss         | -2.84        |
+|    explained_variance   | -2.15e-06    |
+|    learning_rate        | 0.0001       |
+|    loss                 | 4.95         |
+|    n_updates            | 6            |
+|    policy_gradient_loss | -0.00153     |
+|    std                  | 1            |
+|    value_loss           | 19.3         |
+------------------------------------------
+-------------------------------------------
+| rollout/                |               |
+|    ep_len_mean          | 40.2          |
+|    ep_rew_mean          | 11.6          |
+| time/                   |               |
+|    fps                  | 3             |
+|    iterations           | 3             |
+|    time_elapsed         | 386           |
+|    total_timesteps      | 1536          |
+| train/                  |               |
+|    approx_kl            | 0.00071039004 |
+|    clip_fraction        | 0             |
+|    clip_range           | 0.2           |
+|    entropy_loss         | -2.84         |
+|    explained_variance   | 0.000342      |
+|    learning_rate        | 0.0001        |
+|    loss                 | 15.3          |
+|    n_updates            | 12            |
+|    policy_gradient_loss | -0.000442     |
+|    std                  | 1             |
+|    value_loss           | 35.1          |
+-------------------------------------------
+------------------------------------------
+| rollout/                |              |
+|    ep_len_mean          | 38.3         |
+|    ep_rew_mean          | 9.81         |
+| time/                   |              |
+|    fps                  | 3            |
+|    iterations           | 4            |
+|    time_elapsed         | 525          |
+|    total_timesteps      | 2048         |
+| train/                  |              |
+|    approx_kl            | 0.0037187948 |
+|    clip_fraction        | 0.0127       |
+|    clip_range           | 0.2          |
+|    entropy_loss         | -2.84        |
+|    explained_variance   | 0.0695       |
+|    learning_rate        | 0.0001       |
+|    loss                 | 14.3         |
+|    n_updates            | 18           |
+|    policy_gradient_loss | -0.00332     |
+|    std                  | 1            |
+|    value_loss           | 36.2         |
+------------------------------------------
+-----------------------------------------
+| rollout/                |             |
+|    ep_len_mean          | 41.3        |
+|    ep_rew_mean          | 10.3        |
+| time/                   |             |
+|    fps                  | 3           |
+|    iterations           | 5           |
+|    time_elapsed         | 644         |
+|    total_timesteps      | 2560        |
+| train/                  |             |
+|    approx_kl            | 0.001970602 |
+|    clip_fraction        | 0.013       |
+|    clip_range           | 0.2         |
+|    entropy_loss         | -2.84       |
+|    explained_variance   | 0.385       |
+|    learning_rate        | 0.0001      |
+|    loss                 | 6.47        |
+|    n_updates            | 24          |
+|    policy_gradient_loss | 0.00123     |
+|    std                  | 1           |
+|    value_loss           | 17.8        |
+-----------------------------------------
+------------------------------------------
+| rollout/                |              |
+|    ep_len_mean          | 42.5         |
+|    ep_rew_mean          | 10.8         |
+| time/                   |              |
+|    fps                  | 4            |
+|    iterations           | 6            |
+|    time_elapsed         | 767          |
+|    total_timesteps      | 3072         |
+| train/                  |              |
+|    approx_kl            | 0.0060441596 |
+|    clip_fraction        | 0.0247       |
+|    clip_range           | 0.2          |
+|    entropy_loss         | -2.84        |
+|    explained_variance   | 0.421        |
+|    learning_rate        | 0.0001       |
+|    loss                 | 11.1         |
+|    n_updates            | 30           |
+|    policy_gradient_loss | -0.0042      |
+|    std                  | 1.01         |
+|    value_loss           | 21           |
+------------------------------------------
+Traceback (most recent call last):
+  File "/home/developer/ros2_ws/src/autonomous_vehicles/autonomous_vehicles/train_agent.py", line 165, in <module>
+  File "/home/developer/.local/lib/python3.10/site-packages/stable_baselines3/ppo/ppo.py", line 307, in learn
+    return super().learn(
+  File "/home/developer/.local/lib/python3.10/site-packages/stable_baselines3/common/on_policy_algorithm.py", line 248, in learn
+    continue_training = self.collect_rollouts(self.env, callback, self.rollout_buffer, n_rollout_steps=self.n_steps)
+  File "/home/developer/.local/lib/python3.10/site-packages/stable_baselines3/common/on_policy_algorithm.py", line 175, in collect_rollouts
+    new_obs, rewards, dones, infos = env.step(clipped_actions)
+  File "/home/developer/.local/lib/python3.10/site-packages/stable_baselines3/common/vec_env/base_vec_env.py", line 163, in step
+    return self.step_wait()
+  File "/home/developer/.local/lib/python3.10/site-packages/stable_baselines3/common/vec_env/dummy_vec_env.py", line 54, in step_wait
+    obs, self.buf_rews[env_idx], self.buf_dones[env_idx], self.buf_infos[env_idx] = self.envs[env_idx].step(
+  File "/home/developer/.local/lib/python3.10/site-packages/stable_baselines3/common/monitor.py", line 94, in step
+    observation, reward, done, info = self.env.step(action)
+  File "/home/developer/ros2_ws/src/autonomous_vehicles/autonomous_vehicles/car_env.py", line 478, in step
+    rclpy.spin_once(self.node, timeout_sec=0.02)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/__init__.py", line 208, in spin_once
+    executor.spin_once(timeout_sec=timeout_sec)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 773, in spin_once
+    self._spin_once_impl(timeout_sec)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 762, in _spin_once_impl
+    handler, entity, node = self.wait_for_ready_callbacks(timeout_sec=timeout_sec)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 745, in wait_for_ready_callbacks
+    return next(self._cb_iter)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 642, in _wait_for_ready_callbacks
+    wait_set.wait(timeout_nsec)
+KeyboardInterrupt
+Traceback (most recent call last):
+  File "/home/developer/ros2_ws/src/autonomous_vehicles/autonomous_vehicles/train_agent.py", line 165, in <module>
+  File "/home/developer/.local/lib/python3.10/site-packages/stable_baselines3/ppo/ppo.py", line 307, in learn
+    return super().learn(
+  File "/home/developer/.local/lib/python3.10/site-packages/stable_baselines3/common/on_policy_algorithm.py", line 248, in learn
+    continue_training = self.collect_rollouts(self.env, callback, self.rollout_buffer, n_rollout_steps=self.n_steps)
+  File "/home/developer/.local/lib/python3.10/site-packages/stable_baselines3/common/on_policy_algorithm.py", line 175, in collect_rollouts
+    new_obs, rewards, dones, infos = env.step(clipped_actions)
+  File "/home/developer/.local/lib/python3.10/site-packages/stable_baselines3/common/vec_env/base_vec_env.py", line 163, in step
+    return self.step_wait()
+  File "/home/developer/.local/lib/python3.10/site-packages/stable_baselines3/common/vec_env/dummy_vec_env.py", line 54, in step_wait
+    obs, self.buf_rews[env_idx], self.buf_dones[env_idx], self.buf_infos[env_idx] = self.envs[env_idx].step(
+  File "/home/developer/.local/lib/python3.10/site-packages/stable_baselines3/common/monitor.py", line 94, in step
+    observation, reward, done, info = self.env.step(action)
+  File "/home/developer/ros2_ws/src/autonomous_vehicles/autonomous_vehicles/car_env.py", line 478, in step
+    rclpy.spin_once(self.node, timeout_sec=0.02)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/__init__.py", line 208, in spin_once
+    executor.spin_once(timeout_sec=timeout_sec)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 773, in spin_once
+    self._spin_once_impl(timeout_sec)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 762, in _spin_once_impl
+    handler, entity, node = self.wait_for_ready_callbacks(timeout_sec=timeout_sec)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 745, in wait_for_ready_callbacks
+    return next(self._cb_iter)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 642, in _wait_for_ready_callbacks
+    wait_set.wait(timeout_nsec)
+KeyboardInterrupt

@@ -1,0 +1,40 @@
+{
+  "os":  "Linux-6.14.0-37-generic-x86_64-with-glibc2.35",
+  "python":  "CPython 3.10.12",
+  "startedAt":  "2025-12-14T11:49:55.919906Z",
+  "program":  "/home/developer/ros2_ws/src/autonomous_vehicles/autonomous_vehicles/train_agent.py",
+  "codePath":  "autonomous_vehicles/autonomous_vehicles/train_agent.py",
+  "codePathLocal":  "autonomous_vehicles/autonomous_vehicles/train_agent.py",
+  "git":  {
+    "remote":  "git@github.com:PaprykVegee/Controlling-a-mecanum-vehicle-using-MoE-and-RL.git",
+    "commit":  "66f7930dde99fcc39f6e227889bdef75dc06a211"
+  },
+  "email":  "tmorawa@student.agh.edu.pl",
+  "root":  "/home/developer/ros2_ws/src",
+  "host":  "tomek-Victus-by-HP-Gaming-Laptop-15-fa0xxx",
+  "executable":  "/usr/bin/python3",
+  "cpu_count":  8,
+  "cpu_count_logical":  12,
+  "gpu":  "NVIDIA GeForce RTX 3050 Laptop GPU",
+  "gpu_count":  1,
+  "disk":  {
+    "/":  {
+      "total":  "170040844288",
+      "used":  "150134460416"
+    }
+  },
+  "memory":  {
+    "total":  "33302364160"
+  },
+  "gpu_nvidia":  [
+    {
+      "name":  "NVIDIA GeForce RTX 3050 Laptop GPU",
+      "memoryTotal":  "4294967296",
+      "cudaCores":  2048,
+      "architecture":  "Ampere",
+      "uuid":  "GPU-6725406d-30b7-7385-f5da-af1cecc5ab95"
+    }
+  ],
+  "cudaVersion":  "13.0",
+  "writerId":  "fsf9f7fl01x53fwpxh2sanoh5cunlvar"
+}

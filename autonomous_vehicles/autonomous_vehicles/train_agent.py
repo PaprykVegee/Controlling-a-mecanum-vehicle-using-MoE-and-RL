@@ -74,7 +74,7 @@ class AgentFeatureExtractor(BaseFeaturesExtractor):
     def __init__(self, observation_space, model):
         super().__init__(observation_space, features_dim=1)
 
-        device = next(model.parameters()).device  # <- CUDA albo CPU
+        device = next(model.parameters()).device  
 
         self.encoder = model.encoder
 
@@ -88,7 +88,6 @@ class AgentFeatureExtractor(BaseFeaturesExtractor):
             bias=(old_conv1.bias is not None),
         )
 
-        # (opcjonalnie, ale polecam) sensowna inicjalizacja z poprzednich wag
         with torch.no_grad():
             if old_conv1.weight.shape[1] >= 2:
                 new_conv1.weight[:, :2].copy_(old_conv1.weight[:, :2])
@@ -98,12 +97,10 @@ class AgentFeatureExtractor(BaseFeaturesExtractor):
             if new_conv1.bias is not None and old_conv1.bias is not None:
                 new_conv1.bias.copy_(old_conv1.bias)
 
-        # KLUCZ: conv1 na ten sam device co reszta encodera
         self.encoder.conv1 = new_conv1.to(device)
 
         self.pool = nn.AdaptiveAvgPool2d((1, 1))
 
-        # KLUCZ: sample na ten sam device
         with torch.no_grad():
             sample = torch.zeros((1,) + observation_space.shape, device=device)
             feats = self.encoder(sample)

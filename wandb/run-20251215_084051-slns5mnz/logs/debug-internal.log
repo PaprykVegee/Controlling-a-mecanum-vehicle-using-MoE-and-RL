@@ -1,0 +1,14 @@
+{"time":"2025-12-15T08:40:51.902093224Z","level":"INFO","msg":"stream: starting","core version":"0.23.1"}
+{"time":"2025-12-15T08:40:52.5303864Z","level":"INFO","msg":"stream: created new stream","id":"slns5mnz"}
+{"time":"2025-12-15T08:40:52.531160211Z","level":"INFO","msg":"handler: started","stream_id":"slns5mnz"}
+{"time":"2025-12-15T08:40:52.532628475Z","level":"INFO","msg":"stream: started","id":"slns5mnz"}
+{"time":"2025-12-15T08:40:52.532693087Z","level":"INFO","msg":"sender: started","stream_id":"slns5mnz"}
+{"time":"2025-12-15T08:40:52.532702468Z","level":"INFO","msg":"writer: started","stream_id":"slns5mnz"}
+{"time":"2025-12-15T08:41:08.342184718Z","level":"WARN","msg":"tensorboard: no root directory","error":"timed out after 10s"}
+{"time":"2025-12-15T08:41:08.342263913Z","level":"INFO","msg":"tensorboard: tracking new log directory","rootDir":{},"logDir":"LocalOrCloudPath(LocalPath=\"/home/developer/ros2_ws/src/tb_runs/slns5mnz/PPO_1\")","namespace":""}
+{"time":"2025-12-15T08:41:08.343707981Z","level":"INFO","msg":"tensorboard: saving file","fileLocation":"/home/developer/ros2_ws/src/tb_runs/slns5mnz/PPO_1/events.out.tfevents.1765788058.patryk-Legion-Y540-15IRH.3199.0","runPath":"tb_runs/slns5mnz/PPO_1/events.out.tfevents.1765788058.patryk-Legion-Y540-15IRH.3199.0"}
+{"time":"2025-12-15T08:49:16.302935585Z","level":"INFO","msg":"stream: closing","id":"slns5mnz"}
+{"time":"2025-12-15T08:49:17.178723122Z","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-12-15T08:49:17.692387166Z","level":"INFO","msg":"handler: closed","stream_id":"slns5mnz"}
+{"time":"2025-12-15T08:49:17.692685851Z","level":"INFO","msg":"sender: closed","stream_id":"slns5mnz"}
+{"time":"2025-12-15T08:49:17.692749409Z","level":"INFO","msg":"stream: closed","id":"slns5mnz"}

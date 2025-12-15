@@ -6,6 +6,7 @@ from geometry_msgs.msg import Twist
 from std_msgs.msg import Bool
 from tf2_msgs.msg import TFMessage
 import cv2
+from std_msgs.msg import Float32
 
 # Parametry obrazu
 img_size = 600
@@ -111,6 +112,7 @@ class OffroadChecker(Node):
         self.frame_contains = self.get_parameter("frame_contains").value
 
         self.offroad_pub = self.create_publisher(Bool, "/off_road", 10)
+        self.error_pub = self.create_publisher(Float32, "/groundtruth_error", 10)
         self.cmd_pub = self.create_publisher(Twist, self.get_parameter("cmd_vel_topic").value, 10)
 
         # SUB: TFMessage zamiast Odometry
@@ -162,6 +164,8 @@ class OffroadChecker(Node):
         draw_gt(self.centerline, (x, y), self.half_width, self.margin_m, off)
 
         self.offroad_pub.publish(Bool(data=off))  # ZAWSZE
+
+        self.error_pub.publish(Float32(data=d))
 
         if self._last_state is None or off != self._last_state:
             self._last_state = off

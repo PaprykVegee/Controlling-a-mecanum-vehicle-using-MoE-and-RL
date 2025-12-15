@@ -1,0 +1,40 @@
+{
+  "os":  "Linux-6.8.0-88-generic-x86_64-with-glibc2.35",
+  "python":  "CPython 3.10.12",
+  "startedAt":  "2025-12-15T08:40:51.504889Z",
+  "program":  "/home/developer/ros2_ws/src/autonomous_vehicles/autonomous_vehicles/train_agent.py",
+  "codePath":  "autonomous_vehicles/autonomous_vehicles/train_agent.py",
+  "codePathLocal":  "autonomous_vehicles/autonomous_vehicles/train_agent.py",
+  "git":  {
+    "remote":  "https://github.com/PaprykVegee/Controlling-a-mecanum-vehicle-using-MoE-and-RL.git",
+    "commit":  "07e28cffb6e2eaa6abeb5763cb43b68c6c3d4f26"
+  },
+  "email":  "patryklorenc@student.agh.edu.pl",
+  "root":  "/home/developer/ros2_ws/src",
+  "host":  "patryk-Legion-Y540-15IRH",
+  "executable":  "/usr/bin/python3",
+  "cpu_count":  6,
+  "cpu_count_logical":  12,
+  "gpu":  "NVIDIA GeForce RTX 2060",
+  "gpu_count":  1,
+  "disk":  {
+    "/":  {
+      "total":  "263816892416",
+      "used":  "235922788352"
+    }
+  },
+  "memory":  {
+    "total":  "33560780800"
+  },
+  "gpu_nvidia":  [
+    {
+      "name":  "NVIDIA GeForce RTX 2060",
+      "memoryTotal":  "6442450944",
+      "cudaCores":  1920,
+      "architecture":  "Turing",
+      "uuid":  "GPU-8998eacd-0602-edab-bf3a-d74fac132c11"
+    }
+  ],
+  "cudaVersion":  "12.2",
+  "writerId":  "x9uyejdv2l9lwwggn4ytpbu8qwctn0tp"
+}

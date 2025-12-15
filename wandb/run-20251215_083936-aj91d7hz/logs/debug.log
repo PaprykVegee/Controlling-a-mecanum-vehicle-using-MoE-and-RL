@@ -1,0 +1,34 @@
+2025-12-15 08:39:36,042 INFO    MainThread:2771 [wandb_setup.py:_flush():80] Current SDK version is 0.23.1
+2025-12-15 08:39:36,042 INFO    MainThread:2771 [wandb_setup.py:_flush():80] Configure stats pid to 2771
+2025-12-15 08:39:36,042 INFO    MainThread:2771 [wandb_setup.py:_flush():80] Loading settings from /home/developer/.config/wandb/settings
+2025-12-15 08:39:36,042 INFO    MainThread:2771 [wandb_setup.py:_flush():80] Loading settings from /home/developer/ros2_ws/src/wandb/settings
+2025-12-15 08:39:36,042 INFO    MainThread:2771 [wandb_setup.py:_flush():80] Loading settings from environment variables
+2025-12-15 08:39:36,042 INFO    MainThread:2771 [wandb_init.py:setup_run_log_directory():714] Logging user logs to /home/developer/ros2_ws/src/wandb/run-20251215_083936-aj91d7hz/logs/debug.log
+2025-12-15 08:39:36,042 INFO    MainThread:2771 [wandb_init.py:setup_run_log_directory():715] Logging internal logs to /home/developer/ros2_ws/src/wandb/run-20251215_083936-aj91d7hz/logs/debug-internal.log
+2025-12-15 08:39:36,044 INFO    MainThread:2771 [wandb_init.py:init():841] calling init triggers
+2025-12-15 08:39:36,044 INFO    MainThread:2771 [wandb_init.py:init():846] wandb.init called with sweep_config: {}
+config: {'algo': 'PPO', 'total_timesteps': 1000000, 'max_steps_per_episode': 1800, 'n_steps': 512, 'batch_size': 32, 'n_epochs': 6, 'lr': 0.0001, 'gamma': 0.995, 'env_parallel': 1, '_wandb': {}}
+2025-12-15 08:39:36,044 INFO    MainThread:2771 [wandb_init.py:init():889] starting backend
+2025-12-15 08:39:36,411 INFO    MainThread:2771 [wandb_init.py:init():892] sending inform_init request
+2025-12-15 08:39:36,417 INFO    MainThread:2771 [wandb_init.py:init():900] backend started and connected
+2025-12-15 08:39:36,418 INFO    MainThread:2771 [wandb_init.py:init():970] updated telemetry
+2025-12-15 08:39:36,426 INFO    MainThread:2771 [wandb_init.py:init():994] communicating run to backend with 90.0 second timeout
+2025-12-15 08:40:26,467 WARNING MainThread:2771 [wandb_init.py:init():1586] [no run ID] interrupted
+Traceback (most recent call last):
+  File "/home/developer/.local/lib/python3.10/site-packages/wandb/sdk/wandb_init.py", line 1577, in init
+    run = wi.init(run_settings, run_config, run_printer)
+  File "/home/developer/.local/lib/python3.10/site-packages/wandb/sdk/wandb_init.py", line 1005, in init
+    result = wait_with_progress(
+  File "/home/developer/.local/lib/python3.10/site-packages/wandb/sdk/mailbox/wait_with_progress.py", line 23, in wait_with_progress
+    return wait_all_with_progress(
+  File "/home/developer/.local/lib/python3.10/site-packages/wandb/sdk/mailbox/wait_with_progress.py", line 77, in wait_all_with_progress
+    return asyncer.run(progress_loop_with_timeout)
+  File "/home/developer/.local/lib/python3.10/site-packages/wandb/sdk/lib/asyncio_manager.py", line 136, in run
+    return future.result()
+  File "/usr/lib/python3.10/concurrent/futures/_base.py", line 453, in result
+    self._condition.wait(timeout)
+  File "/usr/lib/python3.10/threading.py", line 320, in wait
+    waiter.acquire()
+KeyboardInterrupt
+2025-12-15 08:40:26,472 INFO    wandb-AsyncioManager-main:2771 [service_client.py:_forward_responses():80] Reached EOF.
+2025-12-15 08:40:26,473 INFO    wandb-AsyncioManager-main:2771 [mailbox.py:close():137] Closing mailbox, abandoning 2 handles.

@@ -13,6 +13,7 @@ from std_msgs.msg import Float32MultiArray, Bool
 from geometry_msgs.msg import Twist
 from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
 from tf2_msgs.msg import TFMessage
+from std_msgs.msg import Float32
 
 
 class GazeboLidarMaskEnv(gym.Env):
@@ -46,14 +47,16 @@ class GazeboLidarMaskEnv(gym.Env):
         self.prev_pose_xy = None
 
         # strojenie reward
-        self.progress_scale = 5.0      # ile nagrody za 1 metr (zacznij 3..10)
+        self.min_progress = 0.02   
+        self.idle_penalty_scale = 0.2 
+        self.progress_scale = 10.0      # ile nagrody za 1 metr (zacznij 3..10)
         self.alive_reward = 0.01       # mały bonus za "życie"
         self.turn_penalty_scale = 0.05 # kara za kręcenie (opcjonalnie)
-        self.offroad_penalty = 10.0    # kara za offroad (zostaje)
+        self.offroad_penalty = 100.0    # kara za offroad (zostaje)
+        self.error_scale = 3 
 
+        self.error = 0 # pole przechowywujace ronce meidzy pose a gt
 
-
-        
 
 
         # ---- offroad ----
@@ -91,7 +94,7 @@ class GazeboLidarMaskEnv(gym.Env):
         self.node = Node(f"gym_lidar_mask_env_{int(time.time()*1000)}")
         # ---- random spawn points ----
         self.spawn_points = []
-        self.spawn_file = "xy.txt"  # albo pełna ścieżka
+        self.spawn_file = "/home/developer/ros2_ws/src/xy.txt"  # albo pełna ścieżka
         self.rng = np.random.default_rng()
 
         self._load_spawn_points(self.spawn_file)
@@ -136,6 +139,13 @@ class GazeboLidarMaskEnv(gym.Env):
             "/model/vehicle_blue/pose",
             self._pose_callback,
             qos
+        )
+
+        self.node.create_subscription(
+            Float32,              
+            '/groundtruth_error',  
+            self._error_callback,
+            10                  
         )
 
         # publisher cmd_vel
@@ -280,6 +290,9 @@ class GazeboLidarMaskEnv(gym.Env):
             self.pose_xy = (x, y)
             self._pose_seq += 1
 
+    def _error_callback(self, msg: Float32):
+        self.error = msg.data
+
     def _lidar_callback(self, msg: Float32MultiArray):
         data = np.array(msg.data, dtype=np.float32)
         if data.size % 3 != 0:
@@ -390,30 +403,57 @@ class GazeboLidarMaskEnv(gym.Env):
 
     # ---------- reward ----------
     def _compute_reward(self):
-        # kara za wyjechanie
+        # ===== twarda kara za offroad =====
         if self.offroad_flag:
             return -float(self.offroad_penalty)
 
-        # postęp = realnie przejechany dystans od poprzedniego kroku
         with self._lock:
             cur = self.pose_xy
             prev = self.prev_pose_xy
+            error = float(getattr(self, 'error', 0.0))
+            last_w = float(getattr(self, 'last_w_cmd', 0.0))
 
+        # ===== postęp (proxy prędkości) =====
         progress = 0.0
         if cur is not None and prev is not None:
             dx = float(cur[0] - prev[0])
             dy = float(cur[1] - prev[1])
-            progress = math.sqrt(dx*dx + dy*dy)
+            progress = math.sqrt(dx * dx + dy * dy)
 
-        # aktualizuj prev_pose na następny krok
+        # update prev pose
         with self._lock:
             self.prev_pose_xy = cur
 
-        # (opcjonalnie) kara za kręcenie w miejscu
-        turn_pen = self.turn_penalty_scale * abs(float(self.last_w_cmd))
+        # ======== SKŁADOWE REWARDU ========
 
-        reward = self.alive_reward + self.progress_scale * progress - turn_pen
+        # nagroda za ruch (saturacja chroni przed teleportami)
+        progress_reward = self.progress_scale * min(progress, 0.3)
+
+        # ----- kara za bezczynność (PŁYNNA) -----
+        idle_penalty = 0.0
+        if progress < self.min_progress:
+            idle_penalty = self.idle_penalty_scale * (self.min_progress - progress)
+
+        # ----- kara za skręcanie bez ruchu -----
+        turn_penalty = 0.0
+        if progress < self.min_progress:
+            turn_penalty = self.turn_penalty_scale * abs(last_w)
+
+        # ----- kara za błąd (np. odchył od trasy) -----
+        error_penalty = self.error_scale * error
+
+        # ===== końcowy reward =====
+        reward = (
+            self.alive_reward
+            + progress_reward
+            - idle_penalty
+            - turn_penalty
+            - error_penalty
+        )
+
         return float(reward)
+
+
 
 
     # ---------- Gym API ----------

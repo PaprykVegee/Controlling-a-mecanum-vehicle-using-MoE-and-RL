@@ -1,1 +1,0 @@
-/home/developer/ros2_ws/src/build/autonomous_vehicles/launch/auto.launch.py

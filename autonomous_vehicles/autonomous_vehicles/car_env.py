@@ -47,15 +47,33 @@ class GazeboLidarMaskEnv(gym.Env):
         self.prev_pose_xy = None
 
         # strojenie reward
-        self.min_progress = 0.02   
-        self.idle_penalty_scale = 0.2 
-        self.progress_scale = 10.0      # ile nagrody za 1 metr (zacznij 3..10)
-        self.alive_reward = 0.01       # mały bonus za "życie"
-        self.turn_penalty_scale = 0.05 # kara za kręcenie (opcjonalnie)
-        self.offroad_penalty = 100.0    # kara za offroad (zostaje)
-        self.error_scale = 3 
+        # self.min_progress = 0.02   
+        # self.idle_penalty_scale = 0.2 
+        # self.progress_scale = 40.0      # ile nagrody za 1 metr (zacznij 3..10)
+        # self.alive_reward = 0.1       # mały bonus za "życie"
+        # self.turn_penalty_scale = 0.0 # kara za kręcenie (opcjonalnie)
+        # self.offroad_penalty = 100.0    # kara za offroad (zostaje)
+        # self.error_scale = 3 
+
+        # ===== strojenie reward =====
+        self.min_progress = 0.02
+
+        self.progress_scale = 20.0        # MNIEJ niż 40 – nie dominuje
+        self.alive_reward = 1
+
+        self.idle_penalty_scale = 0.3
+
+        self.turn_reward_scale = 0.8      # NAGRODA za skręt gdy jest błąd
+        self.speed_turn_penalty_scale = 1.0  # kara: szybko + skręt
+
+        self.error_scale = 1.5            # lżejsza kara globalna
+        self.edge_penalty_scale = 15.0    # mocna kara blisko krawędzi
+
+        self.offroad_penalty = 500.0
 
         self.error = 0 # pole przechowywujace ronce meidzy pose a gt
+
+
 
 
 
@@ -67,7 +85,7 @@ class GazeboLidarMaskEnv(gym.Env):
         self.max_ang = 1.0   # [rad/s]
 
         # ---- teleport start ----
-        self.start_x = 6.0
+        self.start_x = 25.0
         self.start_y = 2.0
         self.start_z = 0.325
         self.start_yaw = 0.0  # rad
@@ -103,6 +121,15 @@ class GazeboLidarMaskEnv(gym.Env):
             durability=DurabilityPolicy.VOLATILE,
             depth=5
         )
+
+        # ===== GOAL / META =====
+        self.goal_xy = None          # (x, y)
+        self.goal_radius = 0.5       # [m]
+        self.goal_reward = 100.0
+
+        if self.goal_xy is None:
+            gx, gy, _ = self.spawn_points[-1]
+            self.goal_xy = (float(gx), float(gy))
 
         self._lock = threading.Lock()
 
@@ -160,6 +187,48 @@ class GazeboLidarMaskEnv(gym.Env):
 
 
         self.step_count = 0
+
+    def _sample_spawn_pose(self, k=20):
+        n = len(self.spawn_points)
+        idx = self.rng.integers(k, n - k)
+
+        p = self.spawn_points[idx]
+        x, y = float(p[0]), float(p[1])
+
+        p_prev = self.spawn_points[idx - k]
+        p_next = self.spawn_points[idx + k]
+
+        x_prev, y_prev = float(p_prev[0]), float(p_prev[1])
+        x_next, y_next = float(p_next[0]), float(p_next[1])
+
+        # losowo wybieramy kierunek
+        if self.rng.random() < 0.5:
+            dx = x_next - x_prev
+            dy = y_next - y_prev
+        else:
+            dx = x_prev - x_next
+            dy = y_prev - y_next
+
+        yaw = math.atan2(dy, dx)
+
+        return x, y, yaw
+
+    def _check_goal_reached(self):
+        if self.goal_xy is None:
+            return False
+
+        with self._lock:
+            cur = self.pose_xy
+
+        if cur is None:
+            return False
+
+        dx = cur[0] - self.goal_xy[0]
+        dy = cur[1] - self.goal_xy[1]
+        dist = math.sqrt(dx * dx + dy * dy)
+
+        return dist <= self.goal_radius
+
 
     def _load_spawn_points(self, path: str):
         pts = []
@@ -403,55 +472,78 @@ class GazeboLidarMaskEnv(gym.Env):
 
     # ---------- reward ----------
     def _compute_reward(self):
-        # ===== twarda kara za offroad =====
+        # ===== TWARDY KONIEC EPIZODU =====
         if self.offroad_flag:
-            return -float(self.offroad_penalty)
+            return -100.0
 
+        # ===== ODCZYT STANU =====
         with self._lock:
             cur = self.pose_xy
             prev = self.prev_pose_xy
-            error = float(getattr(self, 'error', 0.0))
             last_w = float(getattr(self, 'last_w_cmd', 0.0))
+            dist_from_center = float(getattr(self, 'dist_from_center', 0.0))  # [m]
 
-        # ===== postęp (proxy prędkości) =====
+        # ===== POSTĘP =====
         progress = 0.0
         if cur is not None and prev is not None:
-            dx = float(cur[0] - prev[0])
-            dy = float(cur[1] - prev[1])
+            dx = cur[0] - prev[0]
+            dy = cur[1] - prev[1]
             progress = math.sqrt(dx * dx + dy * dy)
 
-        # update prev pose
         with self._lock:
             self.prev_pose_xy = cur
 
-        # ======== SKŁADOWE REWARDU ========
+        # ===== ERROR (0..1) =====
+        LANE_HALF_WIDTH = 2.0  # 4 m / 2
+        error = abs(dist_from_center) / LANE_HALF_WIDTH
+        error = max(0.0, min(error, 1.0))
 
-        # nagroda za ruch (saturacja chroni przed teleportami)
-        progress_reward = self.progress_scale * min(progress, 0.3)
+        # ===== REWARD SKŁADOWE =====
 
-        # ----- kara za bezczynność (PŁYNNA) -----
+        # --- progres (zdegradowany przy dużym błędzie) ---
+        progress_reward = 25.0 * min(progress, 0.3)
+        progress_reward *= math.exp(-2.0 * error)
+
+        # --- nagroda za skręt TYLKO gdy jest błąd ---
+        turn_reward = 0.0
+        if error > 0.05:
+            turn_reward = 0.8 * abs(last_w)
+
+        # --- kara: skręt + prędkość (żeby nie prostował zakrętów) ---
+        speed_turn_penalty = 3.0 * abs(last_w) * progress
+
+        # --- kara za stanie ---
         idle_penalty = 0.0
-        if progress < self.min_progress:
-            idle_penalty = self.idle_penalty_scale * (self.min_progress - progress)
+        if progress < 0.02:
+            idle_penalty = 0.3 * (0.02 - progress)
 
-        # ----- kara za skręcanie bez ruchu -----
-        turn_penalty = 0.0
-        if progress < self.min_progress:
-            turn_penalty = self.turn_penalty_scale * abs(last_w)
+        # --- kara blisko krawędzi ---
+        edge_penalty = 0.0
+        if error > 0.7:
+            edge_penalty = 15.0 * (error - 0.7)
 
-        # ----- kara za błąd (np. odchył od trasy) -----
-        error_penalty = self.error_scale * error
+        # --- łagodna kara za błąd ---
+        error_penalty = 1.5 * error
 
-        # ===== końcowy reward =====
+        # --- mały bonus za życie ---
+        alive_reward = 0.05
+
+        # ===== SUMA =====
         reward = (
-            self.alive_reward
+            alive_reward
             + progress_reward
+            + turn_reward
+            - speed_turn_penalty
             - idle_penalty
-            - turn_penalty
+            - edge_penalty
             - error_penalty
         )
 
+        if self._check_goal_reached():
+            reward += self.goal_reward
+
         return float(reward)
+
 
 
 
@@ -467,12 +559,16 @@ class GazeboLidarMaskEnv(gym.Env):
             last_pose_seq = self._pose_seq
         last_offroad_seq = self._offroad_seq
 
-        if len(self.spawn_points) > 0:
-            x, y, yaw = self.spawn_points[self.rng.integers(0, len(self.spawn_points))]
-            self.start_x = float(x)
-            self.start_y = float(y)
-            if yaw is not None:
-                self.start_yaw = float(yaw)
+        # if len(self.spawn_points) > 0:
+        #     x, y, yaw = self.spawn_points[self.rng.integers(0, len(self.spawn_points))]
+        #     self.start_x = float(x)
+        #     self.start_y = float(y)
+        #     if yaw is not None:
+        #         self.start_yaw = float(yaw)
+
+        if len(self.spawn_points) >= 5:
+            self.start_x, self.start_y, self.start_yaw = self._sample_spawn_pose(k=10)
+
 
 
         self._teleport_to_start()
@@ -534,7 +630,16 @@ class GazeboLidarMaskEnv(gym.Env):
             if (now - self._offroad_true_since) >= self.offroad_hold_s:
                 offroad_confirmed = True
 
-        done = bool(offroad_confirmed or (self.step_count >= self.max_steps))
+        #done = bool(offroad_confirmed or (self.step_count >= self.max_steps))
+
+        goal_reached = self._check_goal_reached()
+
+        done = bool(
+            goal_reached
+            or offroad_confirmed
+            or (self.step_count >= self.max_steps)
+        )
+
 
         info = {
             "offroad": bool(self.offroad_flag),

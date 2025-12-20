@@ -14,7 +14,7 @@ from geometry_msgs.msg import Twist
 from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
 from tf2_msgs.msg import TFMessage
 from std_msgs.msg import Float32
-
+from ros_gz_interfaces.msg import Contacts
 
 class GazeboLidarMaskEnv(gym.Env):
     """
@@ -89,7 +89,20 @@ class GazeboLidarMaskEnv(gym.Env):
         self.start_y = 2.0
         self.start_z = 0.325
         self.start_yaw = 0.0  # rad
-        self.reset_grace_s = 0.5 
+        self.reset_grace_s = 0.1
+        self._contact_seq = 0
+        self.obstacle_name = "obstacle_box"
+        self.obstacle_z = 0.25
+        self.obstacle_min_ahead_m = 6.0
+        self.obstacle_max_ahead_m = 15.0
+        self.obstacle_lateral_m = 1.2
+        self.obstacle_hit_penalty = 300.0
+        self.obstacle_pass_reward = 200.0
+        self.obstacle_pass_margin_idx = 40
+        self.spawn_idx = None
+        self.spawn_dir = None  # +1 lub -1
+        self.obstacle_idx = None
+        self.obstacle_xy = None
         # ---- Observation space ----
         self.observation_space = spaces.Box(
             low=0,
@@ -175,6 +188,14 @@ class GazeboLidarMaskEnv(gym.Env):
             10                  
         )
 
+ 
+        self.obstacle_contact = False
+        self.node.create_subscription(
+            Contacts,
+            "/world/mecanum_drive/model/obstacle_box/link/link/sensor/contact_sensor/contact",
+            self._contact_cb,
+            qos
+        )
         # publisher cmd_vel
         self.cmd_pub = self.node.create_publisher(Twist, "/cmd_vel", 10)
 
@@ -187,6 +208,125 @@ class GazeboLidarMaskEnv(gym.Env):
 
 
         self.step_count = 0
+    def _contact_cb(self, msg: Contacts):
+        # Jeśli jakikolwiek kontakt dotyczy vehicle_blue, ustaw hit
+        for c in msg.contacts:
+            n1 = c.collision1.name
+            n2 = c.collision2.name
+            if ("vehicle_blue" in n1) or ("vehicle_blue" in n2):
+                self.obstacle_contact = True
+                self._contact_seq += 1
+                return
+    def _nearest_centerline_idx(self, x: float, y: float) -> int:
+        # prosto i stabilnie; jeśli kiedyś będzie wolno, to zrobimy KDTree
+        pts = np.asarray([(p[0], p[1]) for p in self.spawn_points], dtype=np.float32)
+        d2 = (pts[:, 0] - x) ** 2 + (pts[:, 1] - y) ** 2
+        return int(np.argmin(d2))
+
+
+    def _pick_idx_ahead_by_meters(self, start_idx: int, direction: int, dist_m: float, k: int = 1) -> int:
+        n = len(self.spawn_points)
+        idx = int(start_idx)
+        acc = 0.0
+
+        for _ in range(n):
+            nxt = idx + direction
+            if nxt < k or nxt >= (n - k):
+                break
+
+            x1, y1, _ = self.spawn_points[idx]
+            x2, y2, _ = self.spawn_points[nxt]
+            acc += math.hypot(float(x2) - float(x1), float(y2) - float(y1))
+            idx = nxt
+
+            if acc >= dist_m:
+                return idx
+
+        return idx
+
+
+    def _respawn_obstacle_ahead(self, k=10):
+        # fallback: schowaj przeszkodę daleko
+        def hide():
+            self._set_model_pose(self.obstacle_name, 999.0, 999.0, self.obstacle_z, 0.0)
+            self.obstacle_xy = None
+            self.obstacle_idx = None
+
+        if self.spawn_idx is None or self.spawn_dir is None:
+            hide()
+            return
+
+        n = len(self.spawn_points)
+        if n < (2 * k + 5):
+            hide()
+            return
+
+        # 1) wylosuj dystans “ahead” w metrach
+        ahead_m = float(self.rng.uniform(self.obstacle_min_ahead_m, self.obstacle_max_ahead_m))
+
+        # 2) znajdź indeks na centerline “ahead”
+        idx = self._pick_idx_ahead_by_meters(self.spawn_idx, self.spawn_dir, ahead_m, k=k)
+
+        # 3) policz tangent (kierunek jazdy) i normalną (offset boczny)
+        p_prev = self.spawn_points[idx - k]
+        p_next = self.spawn_points[idx + k]
+        x_prev, y_prev = float(p_prev[0]), float(p_prev[1])
+        x_next, y_next = float(p_next[0]), float(p_next[1])
+
+        dx = x_next - x_prev
+        dy = y_next - y_prev
+        L = math.hypot(dx, dy)
+        if L < 1e-6:
+            hide()
+            return
+
+        # ustaw “forward” zgodnie z kierunkiem jazdy
+        if self.spawn_dir < 0:
+            dx, dy = -dx, -dy
+
+        # normalna
+        nx, ny = -dy / L, dx / L
+
+        lat = float(self.rng.uniform(-self.obstacle_lateral_m, self.obstacle_lateral_m))
+
+        cx, cy, _ = self.spawn_points[idx]
+        ox = float(cx) + nx * lat
+        oy = float(cy) + ny * lat
+
+        ok = self._set_model_pose(self.obstacle_name, ox, oy, self.obstacle_z, yaw=0.0)
+        if ok:
+            self.obstacle_xy = (ox, oy)
+            self.obstacle_idx = int(idx)
+        else:
+            hide()
+
+
+
+    def _set_model_pose(self, model_name: str, x: float, y: float, z: float, yaw: float = 0.0) -> bool:
+        w, qx, qy, qz = self._yaw_to_quat(yaw)
+
+        req = (
+            f'name: "{model_name}" '
+            f'position {{x: {x} y: {y} z: {z}}} '
+            f'orientation {{w: {w} x: {qx} y: {qy} z: {qz}}}'
+        )
+
+        cmd = [
+            "gz", "service",
+            "-s", "/world/mecanum_drive/set_pose/blocking",
+            "--reqtype", "gz.msgs.Pose",
+            "--reptype", "gz.msgs.Boolean",
+            "--timeout", "2000",
+            "--req", req
+        ]
+
+        try:
+            subprocess.run(cmd, check=True, capture_output=True, text=True)
+            return True
+        except subprocess.CalledProcessError as e:
+            self.node.get_logger().error(f"Set pose failed for {model_name}: {e.stderr or e.stdout}")
+            return False
+
 
     def _sample_spawn_pose(self, k=20):
         n = len(self.spawn_points)
@@ -205,13 +345,16 @@ class GazeboLidarMaskEnv(gym.Env):
         if self.rng.random() < 0.5:
             dx = x_next - x_prev
             dy = y_next - y_prev
+            direction = +1
         else:
             dx = x_prev - x_next
             dy = y_prev - y_next
+            direction = -1
 
         yaw = math.atan2(dy, dx)
 
-        return x, y, yaw
+        return x, y, yaw, idx, direction
+
 
     def _check_goal_reached(self):
         if self.goal_xy is None:
@@ -567,15 +710,16 @@ class GazeboLidarMaskEnv(gym.Env):
         #         self.start_yaw = float(yaw)
 
         if len(self.spawn_points) >= 5:
-            self.start_x, self.start_y, self.start_yaw = self._sample_spawn_pose(k=10)
+            self.start_x, self.start_y, self.start_yaw, self.spawn_idx, self.spawn_dir = self._sample_spawn_pose(k=10)
 
-
+        self.obstacle_contact = False
 
         self._teleport_to_start()
 
         # poczekaj na nową pose
         self._wait_for_pose_update(timeout=1.0, last_pose_seq=last_pose_seq)
-
+        
+        self._respawn_obstacle_ahead(k=10)
         # poczekaj aż przyjdzie przynajmniej 1 nowy /off_road po resecie
         t0 = time.time()
         while time.time() - t0 < 1.0 and self._offroad_seq <= last_offroad_seq:
@@ -596,23 +740,28 @@ class GazeboLidarMaskEnv(gym.Env):
     def step(self, action):
         self.step_count += 1
 
+        # --- akcja -> (v, w) ---
         action = np.asarray(action, dtype=np.float32).reshape(-1)
         v_norm = float(np.clip(action[0], 0.0, 1.0))
         w_norm = float(np.clip(action[1], -1.0, 1.0))
         v = v_norm * self.max_lin
         w = w_norm * self.max_ang
 
+        # zapamiętaj sekwencje sensorów + pose do info
         with self._lock:
             last_lidar_seq = self._lidar_seq
             last_mask_seq = self._mask_seq
-            pose_xy = self.pose_xy
+            pose_xy_info = self.pose_xy  # snapshot do info
 
+        # --- wyślij sterowanie ---
         self._send_cmd(v, w)
 
+        # --- poczekaj time_step ---
         t0 = time.time()
         while time.time() - t0 < self.time_step:
             rclpy.spin_once(self.node, timeout_sec=0.02)
 
+        # --- pobierz nową obserwację (wymuś świeże lidar+mask) ---
         obs, _, _ = self._get_obs_blocking(
             timeout=1.0,
             require_new=True,
@@ -620,37 +769,79 @@ class GazeboLidarMaskEnv(gym.Env):
             last_mask_seq=last_mask_seq
         )
 
+        # --- bazowa nagroda (lane keeping / progress / etc.) ---
         reward = float(self._compute_reward())
 
+        # --- grace po resecie ---
         now = time.time()
         in_grace = (now - self._reset_time) < self.reset_grace_s
 
+        # =========================================================
+        # 1) HIT przeszkody (Tylko Contacts)
+        # =========================================================
+        hit_obstacle = (not in_grace) and bool(self.obstacle_contact)
+        if hit_obstacle:
+            reward -= float(self.obstacle_hit_penalty)
+
+        # =========================================================
+        # 2) PASSED przeszkody (po indeksie centerline)
+        # =========================================================
+        passed_obstacle = False
+        cur_xy = None
+        with self._lock:
+            cur_xy = self.pose_xy
+
+        if (not in_grace) and (cur_xy is not None) and (self.obstacle_idx is not None) and (self.spawn_dir is not None):
+            cur_idx = self._nearest_centerline_idx(cur_xy[0], cur_xy[1])
+
+            if self.spawn_dir > 0:
+                passed_obstacle = cur_idx >= (self.obstacle_idx + int(self.obstacle_pass_margin_idx))
+            else:
+                passed_obstacle = cur_idx <= (self.obstacle_idx - int(self.obstacle_pass_margin_idx))
+
+            if passed_obstacle:
+                reward += float(self.obstacle_pass_reward)
+
+        # =========================================================
+        # 3) OFFROAD potwierdzony (z hold)
+        # =========================================================
         offroad_confirmed = False
-        if not in_grace and self.offroad_flag and self._offroad_true_since is not None:
+        if (not in_grace) and self.offroad_flag and (self._offroad_true_since is not None):
             if (now - self._offroad_true_since) >= self.offroad_hold_s:
                 offroad_confirmed = True
 
-        #done = bool(offroad_confirmed or (self.step_count >= self.max_steps))
-
+        # =========================================================
+        # 4) GOAL / MAX STEPS / DONE
+        # =========================================================
         goal_reached = self._check_goal_reached()
 
         done = bool(
             goal_reached
             or offroad_confirmed
+            or hit_obstacle
+            or passed_obstacle
             or (self.step_count >= self.max_steps)
         )
 
-
         info = {
             "offroad": bool(self.offroad_flag),
+            "offroad_confirmed": bool(offroad_confirmed),
             "step": int(self.step_count),
             "v_cmd": float(v),
             "w_cmd": float(w),
-            "pose_xy": pose_xy,
+            "pose_xy": pose_xy_info,
+            "hit_obstacle": bool(hit_obstacle),
+            "passed_obstacle": bool(passed_obstacle),
+            "obstacle_xy": self.obstacle_xy,
+            "obstacle_idx": self.obstacle_idx,
+            "spawn_idx": self.spawn_idx,
+            "spawn_dir": self.spawn_dir,
+            "goal_reached": bool(goal_reached),
         }
+        info["contact_seq"] = int(self._contact_seq)
+        info["obstacle_contact_flag"] = bool(self.obstacle_contact)
 
-        return obs, reward, done, info
-
+        return obs, float(reward), done, info
     def close(self):
         try:
             self._send_cmd(0.0, 0.0)

@@ -1,0 +1,26 @@
+running egg_info
+writing ../build/autonomous_vehicles/autonomous_vehicles.egg-info/PKG-INFO
+writing dependency_links to ../build/autonomous_vehicles/autonomous_vehicles.egg-info/dependency_links.txt
+writing entry points to ../build/autonomous_vehicles/autonomous_vehicles.egg-info/entry_points.txt
+writing requirements to ../build/autonomous_vehicles/autonomous_vehicles.egg-info/requires.txt
+writing top-level names to ../build/autonomous_vehicles/autonomous_vehicles.egg-info/top_level.txt
+reading manifest file '../build/autonomous_vehicles/autonomous_vehicles.egg-info/SOURCES.txt'
+reading manifest template 'MANIFEST.in'
+writing manifest file '../build/autonomous_vehicles/autonomous_vehicles.egg-info/SOURCES.txt'
+running build
+running build_py
+running install
+running install_lib
+running install_data
+copying launch/auto.launch.py -> /home/developer/ros2_ws/src/install/autonomous_vehicles/share/autonomous_vehicles/launch
+running install_egg_info
+removing '/home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages/autonomous_vehicles-0.0.0-py3.10.egg-info' (and everything under it)
+Copying ../build/autonomous_vehicles/autonomous_vehicles.egg-info to /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages/autonomous_vehicles-0.0.0-py3.10.egg-info
+running install_scripts
+Installing control_node script to /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/autonomous_vehicles
+Installing gps_node script to /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/autonomous_vehicles
+Installing image_node script to /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/autonomous_vehicles
+Installing lidar_2d_node script to /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/autonomous_vehicles
+Installing lidar_node script to /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/autonomous_vehicles
+Installing offroad_checker script to /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/autonomous_vehicles
+writing list of installed files to '/home/developer/ros2_ws/src/build/autonomous_vehicles/install.log'

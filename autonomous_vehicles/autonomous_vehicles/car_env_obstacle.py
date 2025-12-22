@@ -16,7 +16,7 @@ from tf2_msgs.msg import TFMessage
 from std_msgs.msg import Float32
 from ros_gz_interfaces.msg import Contacts
 
-class GazeboLidarMaskEnv(gym.Env):
+class GazeboLidarMaskEnvObstacle(gym.Env):
     """
     SB3 1.7.0 (Gym 0.21) compatible Env.
 
@@ -89,8 +89,8 @@ class GazeboLidarMaskEnv(gym.Env):
         self.start_y = 2.0
         self.start_z = 0.325
         self.start_yaw = 0.0  # rad
-        self.reset_grace_s = 0.5 
-
+        self.reset_grace_s = 0.1
+        self._contact_seq = 0
         self.obstacle_name = "obstacle_box"
         self.obstacle_z = 0.25
         self.obstacle_min_ahead_m = 6.0
@@ -98,7 +98,7 @@ class GazeboLidarMaskEnv(gym.Env):
         self.obstacle_lateral_m = 1.2
         self.obstacle_hit_penalty = 300.0
         self.obstacle_pass_reward = 200.0
-        self.obstacle_pass_margin_idx = 8
+        self.obstacle_pass_margin_idx = 40
         self.spawn_idx = None
         self.spawn_dir = None  # +1 lub -1
         self.obstacle_idx = None
@@ -188,17 +188,13 @@ class GazeboLidarMaskEnv(gym.Env):
             10                  
         )
 
-        self.obstacle_touched = False
-        self.node.create_subscription(Bool, 
-            "/obstacle/touched", 
-            self._obstacle_touch_cb,
-              10)
+ 
         self.obstacle_contact = False
         self.node.create_subscription(
             Contacts,
             "/world/mecanum_drive/model/obstacle_box/link/link/sensor/contact_sensor/contact",
             self._contact_cb,
-            10
+            qos
         )
         # publisher cmd_vel
         self.cmd_pub = self.node.create_publisher(Twist, "/cmd_vel", 10)
@@ -219,6 +215,7 @@ class GazeboLidarMaskEnv(gym.Env):
             n2 = c.collision2.name
             if ("vehicle_blue" in n1) or ("vehicle_blue" in n2):
                 self.obstacle_contact = True
+                self._contact_seq += 1
                 return
     def _nearest_centerline_idx(self, x: float, y: float) -> int:
         # prosto i stabilnie; jeśli kiedyś będzie wolno, to zrobimy KDTree
@@ -331,10 +328,6 @@ class GazeboLidarMaskEnv(gym.Env):
             return False
 
 
-    def _obstacle_touch_cb(self, msg: Bool):
-        if msg.data:
-            self.obstacle_touched = True
-
     def _sample_spawn_pose(self, k=20):
         n = len(self.spawn_points)
         idx = self.rng.integers(k, n - k)
@@ -363,21 +356,21 @@ class GazeboLidarMaskEnv(gym.Env):
         return x, y, yaw, idx, direction
 
 
-    def _check_goal_reached(self):
-        if self.goal_xy is None:
-            return False
+    # def _check_goal_reached(self):
+    #     if self.goal_xy is None:
+    #         return False
 
-        with self._lock:
-            cur = self.pose_xy
+    #     with self._lock:
+    #         cur = self.pose_xy
 
-        if cur is None:
-            return False
+    #     if cur is None:
+    #         return False
 
-        dx = cur[0] - self.goal_xy[0]
-        dy = cur[1] - self.goal_xy[1]
-        dist = math.sqrt(dx * dx + dy * dy)
+    #     dx = cur[0] - self.goal_xy[0]
+    #     dy = cur[1] - self.goal_xy[1]
+    #     dist = math.sqrt(dx * dx + dy * dy)
 
-        return dist <= self.goal_radius
+    #     return dist <= self.goal_radius
 
 
     def _load_spawn_points(self, path: str):
@@ -509,6 +502,18 @@ class GazeboLidarMaskEnv(gym.Env):
             self.pose_xy = (x, y)
             self._pose_seq += 1
 
+    def _get_distance_from_centerline(self):
+        if self.pose_xy is None or not self.spawn_points:
+            return 0.0
+        
+        # Znajdź najbliższy punkt na trasie
+        idx = self._nearest_centerline_idx(self.pose_xy[0], self.pose_xy[1])
+        p_center = self.spawn_points[idx]
+        
+        # Oblicz euklidesowy dystans do środka trasy
+        dist = math.hypot(self.pose_xy[0] - p_center[0], self.pose_xy[1] - p_center[1])
+        return dist
+
     def _error_callback(self, msg: Float32):
         self.error = msg.data
 
@@ -622,80 +627,59 @@ class GazeboLidarMaskEnv(gym.Env):
 
     # ---------- reward ----------
     def _compute_reward(self):
-        # ===== TWARDY KONIEC EPIZODU =====
+        # 1. TWARDY KONIEC (Kary terminalne)
         if self.offroad_flag:
-            return -100.0
+            return -500.0
 
-        # ===== ODCZYT STANU =====
+        # 2. ODCZYT STANU
         with self._lock:
             cur = self.pose_xy
             prev = self.prev_pose_xy
-            last_w = float(getattr(self, 'last_w_cmd', 0.0))
-            dist_from_center = float(getattr(self, 'dist_from_center', 0.0))  # [m]
+            v_cmd = float(self.last_v_cmd)
+            w_cmd = float(self.last_w_cmd)
 
-        # ===== POSTĘP =====
-        progress = 0.0
-        if cur is not None and prev is not None:
-            dx = cur[0] - prev[0]
-            dy = cur[1] - prev[1]
-            progress = math.sqrt(dx * dx + dy * dy)
+        if cur is None or prev is None:
+            return 0.0
 
-        with self._lock:
-            self.prev_pose_xy = cur
+        # 3. OBLICZENIE BŁĘDU (Kluczowe dla skręcania)
+        dist_from_center = self._get_distance_from_centerline()
+        LANE_HALF_WIDTH = 2.5 
+        # Błąd znormalizowany (0 = środek, 1 = krawędź)
+        error = min(dist_from_center / LANE_HALF_WIDTH, 1.0)
 
-        # ===== ERROR (0..1) =====
-        LANE_HALF_WIDTH = 2.0  # 4 m / 2
-        error = abs(dist_from_center) / LANE_HALF_WIDTH
-        error = max(0.0, min(error, 1.0))
+        # 4. SKŁADOWE NAGRODY
+        
+        # Nagroda za postęp - skalowana przez to, jak blisko środka jesteśmy
+        # Jeśli error = 1 (krawędź), nagroda za jazdę drastycznie spada
+        progress = math.hypot(cur[0] - prev[0], cur[1] - prev[1])
+        progress_reward = 30.0 * progress * (1.0 - error**2)
 
-        # ===== REWARD SKŁADOWE =====
+        # Nagroda za skręcanie (tylko jeśli naprawia błąd)
+        # Jeśli auto jest po prawej i skręca w lewo (lub odwrotnie) - bonus.
+        # W Twoim kodzie trudno o wektor błędu, więc użyjemy uproszczenia:
+        # Karzemy za duży skręt przy dużej prędkości, chyba że jesteśmy daleko od środka.
+        stability_penalty = 0.0
+        if abs(w_cmd) > 0.2 and error < 0.2:
+            stability_penalty = 0.5 * abs(w_cmd) # Nie zygzakuj na prostych
 
-        # --- progres (zdegradowany przy dużym błędzie) ---
-        progress_reward = 25.0 * min(progress, 0.3)
-        progress_reward *= math.exp(-2.0 * error)
-
-        # --- nagroda za skręt TYLKO gdy jest błąd ---
-        turn_reward = 0.0
-        if error > 0.05:
-            turn_reward = 0.8 * abs(last_w)
-
-        # --- kara: skręt + prędkość (żeby nie prostował zakrętów) ---
-        speed_turn_penalty = 3.0 * abs(last_w) * progress
-
-        # --- kara za stanie ---
-        idle_penalty = 0.0
-        if progress < 0.02:
-            idle_penalty = 0.3 * (0.02 - progress)
-
-        # --- kara blisko krawędzi ---
+        # Kara za bycie blisko krawędzi (wykładnicza)
         edge_penalty = 0.0
-        if error > 0.7:
-            edge_penalty = 15.0 * (error - 0.7)
+        if error > 0.5:
+            edge_penalty = 10.0 * (error ** 2)
 
-        # --- łagodna kara za błąd ---
-        error_penalty = 1.5 * error
+        # Bonus za życie (utrzymany)
+        alive_reward = 0.1
 
-        # --- mały bonus za życie ---
-        alive_reward = 0.05
-
-        # ===== SUMA =====
+        # 5. SUMA
         reward = (
             alive_reward
             + progress_reward
-            + turn_reward
-            - speed_turn_penalty
-            - idle_penalty
             - edge_penalty
-            - error_penalty
+            - stability_penalty
         )
 
-        if self._check_goal_reached():
-            reward += self.goal_reward
-
+        self.prev_pose_xy = cur
         return float(reward)
-
-
-
 
 
     # ---------- Gym API ----------
@@ -717,7 +701,7 @@ class GazeboLidarMaskEnv(gym.Env):
         #         self.start_yaw = float(yaw)
 
         if len(self.spawn_points) >= 5:
-            self.start_x, self.start_y, self.start_yaw, self.spawn_idx, self.spawn_dir = self._sample_spawn_pose(k=10)
+            self.start_x, self.start_y, self.start_yaw, self.spawn_idx, self.spawn_dir = self._sample_spawn_pose(k=20)
 
         self.obstacle_contact = False
 
@@ -725,7 +709,7 @@ class GazeboLidarMaskEnv(gym.Env):
 
         # poczekaj na nową pose
         self._wait_for_pose_update(timeout=1.0, last_pose_seq=last_pose_seq)
-        self.obstacle_touched = False
+        
         self._respawn_obstacle_ahead(k=10)
         # poczekaj aż przyjdzie przynajmniej 1 nowy /off_road po resecie
         t0 = time.time()
@@ -747,23 +731,28 @@ class GazeboLidarMaskEnv(gym.Env):
     def step(self, action):
         self.step_count += 1
 
+        # --- akcja -> (v, w) ---
         action = np.asarray(action, dtype=np.float32).reshape(-1)
         v_norm = float(np.clip(action[0], 0.0, 1.0))
         w_norm = float(np.clip(action[1], -1.0, 1.0))
         v = v_norm * self.max_lin
         w = w_norm * self.max_ang
 
+        # zapamiętaj sekwencje sensorów + pose do info
         with self._lock:
             last_lidar_seq = self._lidar_seq
             last_mask_seq = self._mask_seq
-            pose_xy = self.pose_xy
+            pose_xy_info = self.pose_xy  # snapshot do info
 
+        # --- wyślij sterowanie ---
         self._send_cmd(v, w)
 
+        # --- poczekaj time_step ---
         t0 = time.time()
         while time.time() - t0 < self.time_step:
             rclpy.spin_once(self.node, timeout_sec=0.02)
 
+        # --- pobierz nową obserwację (wymuś świeże lidar+mask) ---
         obs, _, _ = self._get_obs_blocking(
             timeout=1.0,
             require_new=True,
@@ -771,71 +760,79 @@ class GazeboLidarMaskEnv(gym.Env):
             last_mask_seq=last_mask_seq
         )
 
+        # --- bazowa nagroda (lane keeping / progress / etc.) ---
         reward = float(self._compute_reward())
+
+        # --- grace po resecie ---
         now = time.time()
         in_grace = (now - self._reset_time) < self.reset_grace_s
 
-        hit_obstacle = bool(self.obstacle_contact) and (not in_grace)
-        if hit_obstacle:
-            reward -= 300.0
-        now = time.time()
-        in_grace = (now - self._reset_time) < self.reset_grace_s
-
-        # --- HIT (kolizja z Gazebo / TouchPlugin) ---
-        hit_obstacle = bool(self.obstacle_touched) and (not in_grace)
+        # =========================================================
+        # 1) HIT przeszkody (Tylko Contacts)
+        # =========================================================
+        hit_obstacle = (not in_grace) and bool(self.obstacle_contact)
         if hit_obstacle:
             reward -= float(self.obstacle_hit_penalty)
 
-        # --- PASSED (minął przeszkodę po centerline idx) ---
+        # =========================================================
+        # 2) PASSED przeszkody (po indeksie centerline)
+        # =========================================================
         passed_obstacle = False
+        cur_xy = None
         with self._lock:
             cur_xy = self.pose_xy
 
         if (not in_grace) and (cur_xy is not None) and (self.obstacle_idx is not None) and (self.spawn_dir is not None):
             cur_idx = self._nearest_centerline_idx(cur_xy[0], cur_xy[1])
+
             if self.spawn_dir > 0:
-                passed_obstacle = cur_idx >= (self.obstacle_idx + self.obstacle_pass_margin_idx)
+                passed_obstacle = cur_idx >= (self.obstacle_idx + int(self.obstacle_pass_margin_idx))
             else:
-                passed_obstacle = cur_idx <= (self.obstacle_idx - self.obstacle_pass_margin_idx)
+                passed_obstacle = cur_idx <= (self.obstacle_idx - int(self.obstacle_pass_margin_idx))
 
             if passed_obstacle:
                 reward += float(self.obstacle_pass_reward)
 
-        now = time.time()
-        in_grace = (now - self._reset_time) < self.reset_grace_s
-
+        # =========================================================
+        # 3) OFFROAD potwierdzony (z hold)
+        # =========================================================
         offroad_confirmed = False
-        if not in_grace and self.offroad_flag and self._offroad_true_since is not None:
+        if (not in_grace) and self.offroad_flag and (self._offroad_true_since is not None):
             if (now - self._offroad_true_since) >= self.offroad_hold_s:
                 offroad_confirmed = True
 
-        #done = bool(offroad_confirmed or (self.step_count >= self.max_steps))
-
-        goal_reached = self._check_goal_reached()
+        # =========================================================
+        # 4) GOAL / MAX STEPS / DONE
+        # =========================================================
+        # goal_reached = self._check_goal_reached()
 
         done = bool(
-            goal_reached
-            or offroad_confirmed
+            # goal_reached
+            offroad_confirmed
             or hit_obstacle
             or passed_obstacle
             or (self.step_count >= self.max_steps)
         )
 
-
         info = {
             "offroad": bool(self.offroad_flag),
+            "offroad_confirmed": bool(offroad_confirmed),
             "step": int(self.step_count),
             "v_cmd": float(v),
             "w_cmd": float(w),
-            "pose_xy": pose_xy,
+            "pose_xy": pose_xy_info,
             "hit_obstacle": bool(hit_obstacle),
             "passed_obstacle": bool(passed_obstacle),
             "obstacle_xy": self.obstacle_xy,
             "obstacle_idx": self.obstacle_idx,
+            "spawn_idx": self.spawn_idx,
+            "spawn_dir": self.spawn_dir,
+            # "goal_reached": bool(goal_reached),
         }
+        info["contact_seq"] = int(self._contact_seq)
+        info["obstacle_contact_flag"] = bool(self.obstacle_contact)
 
-        return obs, reward, done, info
-
+        return obs, float(reward), done, info
     def close(self):
         try:
             self._send_cmd(0.0, 0.0)

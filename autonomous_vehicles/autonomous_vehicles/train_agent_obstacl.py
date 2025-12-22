@@ -13,7 +13,7 @@ import numpy as np
 import wandb
 from wandb.integration.sb3 import WandbCallback
 import os
-from car_env import GazeboLidarMaskEnv
+from car_env_obstacle import GazeboLidarMaskEnvObstacle
 
 # =========================
 # Ustawienia
@@ -146,7 +146,7 @@ policy_kwargs = dict(
 # =========================
 # Środowisko
 # =========================
-env_fn = lambda: GazeboLidarMaskEnv(max_steps=MAX_STEPS_PER_EPISODE, time_step=TIME_STEP)
+env_fn = lambda: GazeboLidarMaskEnvObstacle(max_steps=MAX_STEPS_PER_EPISODE, time_step=TIME_STEP)
 vec_env = make_vec_env(env_fn, n_envs=ENV_PARALLEL)
 vec_env = VecMonitor(vec_env)
 
@@ -169,7 +169,7 @@ model = PPO(
     tensorboard_log=tb_dir,
 )
 
-model = PPO.load("/home/developer/ros2_ws/src/cheakpoints/checkpoint_200000_steps", env=vec_env, device=DEVICE)
+model = PPO.load("/home/developer/ros2_ws/src/cheakpoints/checkpoint_35500_steps", env=vec_env, device=DEVICE)
 
 # =========================
 # Callback do zapisywania checkpointów
@@ -202,49 +202,49 @@ wandb_callback = WandbCallback(
     verbose=2,  
 )
 
-# callback = CallbackList([wandb_callback, checkpoint_callback])
+callback = CallbackList([wandb_callback, checkpoint_callback])
 
-# # =========================
-# # Trening
-# # =========================
-# model.learn(total_timesteps=TOTAL_STEPS, callback=callback)
+# =========================
+# Trening
+# =========================
+model.learn(total_timesteps=TOTAL_STEPS, callback=callback)
 
-# # =========================
-# # Zapis końcowy
-# # =========================
-# model.save("ppo_gazebo_unet_encoder")
-# run.finish()
+# =========================
+# Zapis końcowy
+# =========================
+model.save("ppo_gazebo_unet_encoder")
+run.finish()
 
 
 
 ################################### Ewaluacja ############################################
 
-from stable_baselines3 import PPO
+# from stable_baselines3 import PPO
 
-model = PPO.load(
-    "/home/developer/ros2_ws/src/cheakpoints/checkpoint_380000_steps.zip",
-    env=vec_env,
-    device=DEVICE
-)
+# model = PPO.load(
+#     "/home/developer/ros2_ws/src/cheakpoints/checkpoint_35500_steps.zip",
+#     env=vec_env,
+#     device=DEVICE
+# )
 
-# 🔒 WYŁĄCZ TRYB TRENINGOWY
-model.policy.set_training_mode(False)
+# # 🔒 WYŁĄCZ TRYB TRENINGOWY
+# model.policy.set_training_mode(False)
 
-# (opcjonalnie, ale dobre)
-vec_env.training = False
-vec_env.norm_reward = False
+# # (opcjonalnie, ale dobre)
+# vec_env.training = False
+# vec_env.norm_reward = False
 
-obs = vec_env.reset()
+# obs = vec_env.reset()
 
-while True:
-    # 🔥 TU JEST CAŁA MAGIA
-    action, _ = model.predict(
-        obs,
-        deterministic=True
-    )
+# while True:
+#     # 🔥 TU JEST CAŁA MAGIA
+#     action, _ = model.predict(
+#         obs,
+#         deterministic=True
+#     )
 
-    obs, reward, done, info = vec_env.step(action)
+#     obs, reward, done, info = vec_env.step(action)
 
-    if done:
-        obs = vec_env.reset()
+#     if done:
+#         obs = vec_env.reset()
 

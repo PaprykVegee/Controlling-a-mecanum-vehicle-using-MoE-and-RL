@@ -91,7 +91,6 @@
       <self_collide>false</self_collide>
     </model>
 
-
 <model name="obstacle_box">
   <static>true</static>
   <pose>0 0 0.25 0 0 0</pose>
@@ -103,6 +102,17 @@
       </geometry>
     </collision>
 
+    <visual name="visual">
+      <geometry>
+        <box><size>0.6 0.6 0.5</size></box>
+      </geometry>
+      <material>
+        <ambient>1 0 0 1</ambient>
+        <diffuse>1 0 0 1</diffuse>
+        <specular>0.2 0.2 0.2 1</specular>
+      </material>
+    </visual>
+
     <sensor name="contact_sensor" type="contact">
       <always_on>true</always_on>
       <update_rate>50</update_rate>
@@ -110,12 +120,6 @@
         <collision>collision</collision>
       </contact>
     </sensor>
-
-    <visual name="visual">
-      <geometry>
-        <box><size>0.6 0.6 0.5</size></box>
-      </geometry>
-    </visual>
   </link>
 
   <plugin filename="gz-sim-touchplugin-system"
@@ -126,6 +130,7 @@
     <enabled>true</enabled>
   </plugin>
 </model>
+
 
     <model name='vehicle_blue' xmlns:gz='http://gazebosim.org/schema'>
       <pose>6 2 0.32500000000000001 0 0 0</pose>

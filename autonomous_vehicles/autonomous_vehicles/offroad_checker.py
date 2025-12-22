@@ -89,7 +89,7 @@ class OffroadChecker(Node):
 
         # Parametry
         self.declare_parameter("centerline_file", "")
-        self.declare_parameter("road_half_width", 1.0)   # [m]
+        self.declare_parameter("road_half_width", 2.5)   # [m]
         self.declare_parameter("margin", 0.1)            # [m]
         self.declare_parameter("stop_on_offroad", True)
         self.declare_parameter("pose_topic", "/model/vehicle_blue/pose")

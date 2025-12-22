@@ -1,0 +1,25 @@
+running develop
+running egg_info
+writing autonomous_vehicles.egg-info/PKG-INFO
+writing dependency_links to autonomous_vehicles.egg-info/dependency_links.txt
+writing entry points to autonomous_vehicles.egg-info/entry_points.txt
+writing requirements to autonomous_vehicles.egg-info/requires.txt
+writing top-level names to autonomous_vehicles.egg-info/top_level.txt
+reading manifest file 'autonomous_vehicles.egg-info/SOURCES.txt'
+writing manifest file 'autonomous_vehicles.egg-info/SOURCES.txt'
+running build_ext
+Creating /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages/autonomous-vehicles.egg-link (link to .)
+Installing control_node script to /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/autonomous_vehicles
+Installing gps_node script to /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/autonomous_vehicles
+Installing image_node script to /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/autonomous_vehicles
+Installing lidar_2d_node script to /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/autonomous_vehicles
+Installing lidar_node script to /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/autonomous_vehicles
+Installing offroad_checker script to /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/autonomous_vehicles
+
+Installed /home/developer/ros2_ws/src/build/autonomous_vehicles
+running symlink_data
+symbolically linking /home/developer/ros2_ws/src/build/autonomous_vehicles/resource/autonomous_vehicles -> /home/developer/ros2_ws/src/install/autonomous_vehicles/share/ament_index/resource_index/packages
+symbolically linking /home/developer/ros2_ws/src/build/autonomous_vehicles/launch/auto.launch.py -> /home/developer/ros2_ws/src/install/autonomous_vehicles/share/autonomous_vehicles/launch
+symbolically linking /home/developer/ros2_ws/src/build/autonomous_vehicles/launch/auto.train.launch.py -> /home/developer/ros2_ws/src/install/autonomous_vehicles/share/autonomous_vehicles/launch
+symbolically linking /home/developer/ros2_ws/src/build/autonomous_vehicles/config/bridge_config.yaml -> /home/developer/ros2_ws/src/install/autonomous_vehicles/share/autonomous_vehicles/config
+symbolically linking /home/developer/ros2_ws/src/build/autonomous_vehicles/config/bridge_params.yaml -> /home/developer/ros2_ws/src/install/autonomous_vehicles/share/autonomous_vehicles/config

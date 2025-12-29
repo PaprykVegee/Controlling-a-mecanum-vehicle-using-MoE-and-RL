@@ -2,12 +2,14 @@ setup.cfg
 setup.py
 autonomous_vehicles/Segmetation.py
 autonomous_vehicles/__init__.py
-autonomous_vehicles/car_env.py
+autonomous_vehicles/car_env_normal.py
+autonomous_vehicles/car_env_obstacle.py
 autonomous_vehicles/control_node.py
 autonomous_vehicles/image_node.py
 autonomous_vehicles/lidar_node.py
 autonomous_vehicles/offroad_checker.py
-autonomous_vehicles/train_agent.py
+autonomous_vehicles/train_agent_normal.py
+autonomous_vehicles/train_agent_obstacl.py
 autonomous_vehicles/view_manipulation.py
 autonomous_vehicles.egg-info/PKG-INFO
 autonomous_vehicles.egg-info/SOURCES.txt

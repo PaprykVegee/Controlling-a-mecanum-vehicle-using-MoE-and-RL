@@ -7,7 +7,7 @@ def generate_launch_description():
     # =====================
     # Paths
     # =====================
-    world_path = "/home/developer/ros2_ws/src/models/mecanum.sdf"
+    world_path = "/home/developer/ros2_ws/src/new_models/mecanum.sdf"
     training_script_path = "/home/developer/ros2_ws/src/autonomous_vehicles/autonomous_vehicles/train_agent.py"
     working_dir = "/home/developer/ros2_ws/src/autonomous_vehicles"
 

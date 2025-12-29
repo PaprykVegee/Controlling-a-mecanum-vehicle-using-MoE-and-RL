@@ -3,7 +3,7 @@ from launch.actions import ExecuteProcess, SetEnvironmentVariable
 from launch_ros.actions import Node
 
 def generate_launch_description():
-    world_path = "/home/developer/ros2_ws/src/models/mecanum.sdf"
+    world_path = "/home/developer/ros2_ws/src/new_models/mecanum.sdf"
 
     set_gz_resource_path = SetEnvironmentVariable(
         name='IGN_GAZEBO_RESOURCE_PATH',

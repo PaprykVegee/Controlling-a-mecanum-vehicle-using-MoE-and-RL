@@ -627,59 +627,59 @@ class GazeboLidarMaskEnvObstacle(gym.Env):
 
     # ---------- reward ----------
     def _compute_reward(self):
-        # 1. TWARDY KONIEC (Kary terminalne)
-        if self.offroad_flag:
-            return -500.0
+            # 1. TWARDY KONIEC
+            if self.offroad_flag:
+                return -500.0
 
-        # 2. ODCZYT STANU
-        with self._lock:
-            cur = self.pose_xy
-            prev = self.prev_pose_xy
-            v_cmd = float(self.last_v_cmd)
-            w_cmd = float(self.last_w_cmd)
+            # 2. ODCZYT STANU
+            with self._lock:
+                cur = self.pose_xy
+                prev = self.prev_pose_xy
+                v_cmd = float(self.last_v_cmd)
+                w_cmd = float(self.last_w_cmd)
 
-        if cur is None or prev is None:
-            return 0.0
+            if cur is None or prev is None:
+                return 0.0
 
-        # 3. OBLICZENIE BŁĘDU (Kluczowe dla skręcania)
-        dist_from_center = self._get_distance_from_centerline()
-        LANE_HALF_WIDTH = 2.5 
-        # Błąd znormalizowany (0 = środek, 1 = krawędź)
-        error = min(dist_from_center / LANE_HALF_WIDTH, 1.0)
+            dist_from_center = self._get_distance_from_centerline()
+            LANE_HALF_WIDTH = 2.5 
+            error = min(dist_from_center / LANE_HALF_WIDTH, 1.0)
 
-        # 4. SKŁADOWE NAGRODY
-        
-        # Nagroda za postęp - skalowana przez to, jak blisko środka jesteśmy
-        # Jeśli error = 1 (krawędź), nagroda za jazdę drastycznie spada
-        progress = math.hypot(cur[0] - prev[0], cur[1] - prev[1])
-        progress_reward = 30.0 * progress * (1.0 - error**2)
+            # 3. OBLICZENIE POSTĘPU
+            progress = math.hypot(cur[0] - prev[0], cur[1] - prev[1])
 
-        # Nagroda za skręcanie (tylko jeśli naprawia błąd)
-        # Jeśli auto jest po prawej i skręca w lewo (lub odwrotnie) - bonus.
-        # W Twoim kodzie trudno o wektor błędu, więc użyjemy uproszczenia:
-        # Karzemy za duży skręt przy dużej prędkości, chyba że jesteśmy daleko od środka.
-        stability_penalty = 0.0
-        if abs(w_cmd) > 0.2 and error < 0.2:
-            stability_penalty = 0.5 * abs(w_cmd) # Nie zygzakuj na prostych
+            # 4. SKŁADOWE NAGRODY
 
-        # Kara za bycie blisko krawędzi (wykładnicza)
-        edge_penalty = 0.0
-        if error > 0.5:
-            edge_penalty = 10.0 * (error ** 2)
+            # Progres nagradzany tylko, gdy jazda jest w miarę stabilna
+            # Jeśli robot mocno się kręci (duże w_cmd), progres jest "wart" mniej
+            stability_factor = math.exp(-2.0 * abs(w_cmd)) 
+            progress_reward = 40.0 * progress * (1.0 - error**2) * stability_factor
 
-        # Bonus za życie (utrzymany)
-        alive_reward = 0.1
+            # --- KARA ZA SPIRALĘ (Jazda do przodu z jednoczesnym kręceniem) ---
+            # Jeśli stosunek obrotu do ruchu do przodu jest zbyt wysoki, dajemy mocną karę
+            spiral_penalty = 0.0
+            if progress > 0.01 and abs(w_cmd) > 0.4:
+                # Karzemy za każdy "radian obrotu na metr postępu"
+                spiral_penalty = 10.0 * (abs(w_cmd) / (progress + 0.1))
 
-        # 5. SUMA
-        reward = (
-            alive_reward
-            + progress_reward
-            - edge_penalty
-            - stability_penalty
-        )
+            # Kara za bycie blisko krawędzi
+            edge_penalty = 0.0
+            if error > 0.5:
+                edge_penalty = 20.0 * (error ** 2)
 
-        self.prev_pose_xy = cur
-        return float(reward)
+            # Bonus za życie (zmniejszony, by nie promować "stania i kręcenia")
+            alive_reward = 0.05
+
+            # 5. SUMA
+            reward = (
+                alive_reward
+                + progress_reward
+                - edge_penalty
+                - spiral_penalty
+            )
+
+            self.prev_pose_xy = cur
+            return float(reward)
 
 
     # ---------- Gym API ----------

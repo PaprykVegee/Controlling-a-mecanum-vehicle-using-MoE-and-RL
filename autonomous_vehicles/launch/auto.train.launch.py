@@ -94,7 +94,7 @@ def generate_launch_description():
         parameters=[
             {
                 'use_sim_time': True,
-                'centerline_file': '/home/developer/ros2_ws/src/xy.txt',
+                'centerline_file': '/home/developer/ros2_ws/src/xy8.txt',
                 'road_half_width': 2.0,
                 'margin': 0.1,
                 'stop_on_offroad': True,

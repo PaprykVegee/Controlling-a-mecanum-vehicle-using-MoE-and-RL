@@ -1,0 +1,72 @@
+[0.626s] Invoking command in '/home/developer/ros2_ws/src/build/autonomous_vehicles': PYTHONPATH=/home/developer/ros2_ws/src/build/autonomous_vehicles/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --uninstall --editable --build-directory /home/developer/ros2_ws/src/build/autonomous_vehicles/build
+[0.831s] running develop
+[0.965s] Removing /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages/autonomous-vehicles.egg-link (link to .)
+[0.996s] Invoked command in '/home/developer/ros2_ws/src/build/autonomous_vehicles' returned '0': PYTHONPATH=/home/developer/ros2_ws/src/build/autonomous_vehicles/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --uninstall --editable --build-directory /home/developer/ros2_ws/src/build/autonomous_vehicles/build
+[0.996s] Invoking command in '/home/developer/ros2_ws/src/autonomous_vehicles': PYTHONPATH=/home/developer/ros2_ws/src/build/autonomous_vehicles/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../build/autonomous_vehicles build --build-base /home/developer/ros2_ws/src/build/autonomous_vehicles/build install --record /home/developer/ros2_ws/src/build/autonomous_vehicles/install.log --single-version-externally-managed install_data --force
+[1.209s] running egg_info
+[1.217s] writing ../build/autonomous_vehicles/autonomous_vehicles.egg-info/PKG-INFO
+[1.218s] writing dependency_links to ../build/autonomous_vehicles/autonomous_vehicles.egg-info/dependency_links.txt
+[1.218s] writing entry points to ../build/autonomous_vehicles/autonomous_vehicles.egg-info/entry_points.txt
+[1.218s] writing requirements to ../build/autonomous_vehicles/autonomous_vehicles.egg-info/requires.txt
+[1.218s] writing top-level names to ../build/autonomous_vehicles/autonomous_vehicles.egg-info/top_level.txt
+[1.235s] reading manifest file '../build/autonomous_vehicles/autonomous_vehicles.egg-info/SOURCES.txt'
+[1.235s] reading manifest template 'MANIFEST.in'
+[1.236s] writing manifest file '../build/autonomous_vehicles/autonomous_vehicles.egg-info/SOURCES.txt'
+[1.236s] running build
+[1.236s] running build_py
+[1.236s] creating /home/developer/ros2_ws/src/build/autonomous_vehicles/build
+[1.236s] creating /home/developer/ros2_ws/src/build/autonomous_vehicles/build/lib
+[1.236s] creating /home/developer/ros2_ws/src/build/autonomous_vehicles/build/lib/autonomous_vehicles
+[1.236s] copying autonomous_vehicles/train_agent_obstacl.py -> /home/developer/ros2_ws/src/build/autonomous_vehicles/build/lib/autonomous_vehicles
+[1.236s] copying autonomous_vehicles/car_env_normal.py -> /home/developer/ros2_ws/src/build/autonomous_vehicles/build/lib/autonomous_vehicles
+[1.236s] copying autonomous_vehicles/Segmetation.py -> /home/developer/ros2_ws/src/build/autonomous_vehicles/build/lib/autonomous_vehicles
+[1.236s] copying autonomous_vehicles/train_agent_normal.py -> /home/developer/ros2_ws/src/build/autonomous_vehicles/build/lib/autonomous_vehicles
+[1.236s] copying autonomous_vehicles/control_node.py -> /home/developer/ros2_ws/src/build/autonomous_vehicles/build/lib/autonomous_vehicles
+[1.236s] copying autonomous_vehicles/__init__.py -> /home/developer/ros2_ws/src/build/autonomous_vehicles/build/lib/autonomous_vehicles
+[1.236s] copying autonomous_vehicles/car_env_obstacle.py -> /home/developer/ros2_ws/src/build/autonomous_vehicles/build/lib/autonomous_vehicles
+[1.236s] copying autonomous_vehicles/image_node.py -> /home/developer/ros2_ws/src/build/autonomous_vehicles/build/lib/autonomous_vehicles
+[1.236s] copying autonomous_vehicles/offroad_checker.py -> /home/developer/ros2_ws/src/build/autonomous_vehicles/build/lib/autonomous_vehicles
+[1.236s] copying autonomous_vehicles/view_manipulation.py -> /home/developer/ros2_ws/src/build/autonomous_vehicles/build/lib/autonomous_vehicles
+[1.236s] copying autonomous_vehicles/lidar_node.py -> /home/developer/ros2_ws/src/build/autonomous_vehicles/build/lib/autonomous_vehicles
+[1.236s] running install
+[1.240s] running install_lib
+[1.254s] creating /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages/autonomous_vehicles
+[1.254s] copying /home/developer/ros2_ws/src/build/autonomous_vehicles/build/lib/autonomous_vehicles/train_agent_obstacl.py -> /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages/autonomous_vehicles
+[1.254s] copying /home/developer/ros2_ws/src/build/autonomous_vehicles/build/lib/autonomous_vehicles/car_env_normal.py -> /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages/autonomous_vehicles
+[1.254s] copying /home/developer/ros2_ws/src/build/autonomous_vehicles/build/lib/autonomous_vehicles/Segmetation.py -> /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages/autonomous_vehicles
+[1.254s] copying /home/developer/ros2_ws/src/build/autonomous_vehicles/build/lib/autonomous_vehicles/train_agent_normal.py -> /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages/autonomous_vehicles
+[1.254s] copying /home/developer/ros2_ws/src/build/autonomous_vehicles/build/lib/autonomous_vehicles/control_node.py -> /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages/autonomous_vehicles
+[1.254s] copying /home/developer/ros2_ws/src/build/autonomous_vehicles/build/lib/autonomous_vehicles/__init__.py -> /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages/autonomous_vehicles
+[1.254s] copying /home/developer/ros2_ws/src/build/autonomous_vehicles/build/lib/autonomous_vehicles/car_env_obstacle.py -> /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages/autonomous_vehicles
+[1.254s] copying /home/developer/ros2_ws/src/build/autonomous_vehicles/build/lib/autonomous_vehicles/image_node.py -> /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages/autonomous_vehicles
+[1.254s] copying /home/developer/ros2_ws/src/build/autonomous_vehicles/build/lib/autonomous_vehicles/offroad_checker.py -> /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages/autonomous_vehicles
+[1.254s] copying /home/developer/ros2_ws/src/build/autonomous_vehicles/build/lib/autonomous_vehicles/view_manipulation.py -> /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages/autonomous_vehicles
+[1.254s] copying /home/developer/ros2_ws/src/build/autonomous_vehicles/build/lib/autonomous_vehicles/lidar_node.py -> /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages/autonomous_vehicles
+[1.254s] byte-compiling /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages/autonomous_vehicles/train_agent_obstacl.py to train_agent_obstacl.cpython-310.pyc
+[1.255s] byte-compiling /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages/autonomous_vehicles/car_env_normal.py to car_env_normal.cpython-310.pyc
+[1.257s] byte-compiling /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages/autonomous_vehicles/Segmetation.py to Segmetation.cpython-310.pyc
+[1.257s] byte-compiling /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages/autonomous_vehicles/train_agent_normal.py to train_agent_normal.cpython-310.pyc
+[1.258s] byte-compiling /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages/autonomous_vehicles/control_node.py to control_node.cpython-310.pyc
+[1.259s] byte-compiling /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages/autonomous_vehicles/__init__.py to __init__.cpython-310.pyc
+[1.259s] byte-compiling /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages/autonomous_vehicles/car_env_obstacle.py to car_env_obstacle.cpython-310.pyc
+[1.262s] byte-compiling /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages/autonomous_vehicles/image_node.py to image_node.cpython-310.pyc
+[1.262s] byte-compiling /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages/autonomous_vehicles/offroad_checker.py to offroad_checker.cpython-310.pyc
+[1.263s] byte-compiling /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages/autonomous_vehicles/view_manipulation.py to view_manipulation.cpython-310.pyc
+[1.264s] byte-compiling /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages/autonomous_vehicles/lidar_node.py to lidar_node.cpython-310.pyc
+[1.264s] running install_data
+[1.264s] copying resource/autonomous_vehicles -> /home/developer/ros2_ws/src/install/autonomous_vehicles/share/ament_index/resource_index/packages
+[1.264s] copying launch/auto.launch.py -> /home/developer/ros2_ws/src/install/autonomous_vehicles/share/autonomous_vehicles/launch
+[1.264s] copying launch/auto.train.launch.py -> /home/developer/ros2_ws/src/install/autonomous_vehicles/share/autonomous_vehicles/launch
+[1.264s] copying config/bridge_params.yaml -> /home/developer/ros2_ws/src/install/autonomous_vehicles/share/autonomous_vehicles/config
+[1.264s] copying config/bridge_config.yaml -> /home/developer/ros2_ws/src/install/autonomous_vehicles/share/autonomous_vehicles/config
+[1.264s] running install_egg_info
+[1.273s] Copying ../build/autonomous_vehicles/autonomous_vehicles.egg-info to /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages/autonomous_vehicles-0.0.0-py3.10.egg-info
+[1.274s] running install_scripts
+[1.306s] Installing control_node script to /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/autonomous_vehicles
+[1.306s] Installing gps_node script to /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/autonomous_vehicles
+[1.306s] Installing image_node script to /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/autonomous_vehicles
+[1.306s] Installing lidar_2d_node script to /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/autonomous_vehicles
+[1.306s] Installing lidar_node script to /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/autonomous_vehicles
+[1.306s] Installing offroad_checker script to /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/autonomous_vehicles
+[1.306s] writing list of installed files to '/home/developer/ros2_ws/src/build/autonomous_vehicles/install.log'
+[1.337s] Invoked command in '/home/developer/ros2_ws/src/autonomous_vehicles' returned '0': PYTHONPATH=/home/developer/ros2_ws/src/build/autonomous_vehicles/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../build/autonomous_vehicles build --build-base /home/developer/ros2_ws/src/build/autonomous_vehicles/build install --record /home/developer/ros2_ws/src/build/autonomous_vehicles/install.log --single-version-externally-managed install_data --force

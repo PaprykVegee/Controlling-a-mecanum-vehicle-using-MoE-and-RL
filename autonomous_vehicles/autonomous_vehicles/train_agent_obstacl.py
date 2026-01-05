@@ -169,7 +169,7 @@ model = PPO(
     tensorboard_log=tb_dir,
 )
 
-model = PPO.load("/home/developer/ros2_ws/src/cheakpoints/checkpoint_35500_steps", env=vec_env, device=DEVICE)
+model = PPO.load("/home/developer/ros2_ws/src/cheakpoints/checkpoint_380000_steps", env=vec_env, device=DEVICE)
 
 # =========================
 # Callback do zapisywania checkpointów

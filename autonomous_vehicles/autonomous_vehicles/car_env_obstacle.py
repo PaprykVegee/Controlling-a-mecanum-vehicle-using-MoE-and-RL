@@ -89,7 +89,7 @@ class GazeboLidarMaskEnvObstacle(gym.Env):
         self.start_y = 2.0
         self.start_z = 0.325
         self.start_yaw = 0.0  # rad
-        self.reset_grace_s = 0.1
+        self.reset_grace_s = 1
         self._contact_seq = 0
         self.obstacle_name = "obstacle_box"
         self.obstacle_z = 0.25
@@ -103,6 +103,7 @@ class GazeboLidarMaskEnvObstacle(gym.Env):
         self.spawn_dir = None  # +1 lub -1
         self.obstacle_idx = None
         self.obstacle_xy = None
+        self.last_contact_time = -1e9
         # ---- Observation space ----
         self.observation_space = spaces.Box(
             low=0,
@@ -125,7 +126,7 @@ class GazeboLidarMaskEnvObstacle(gym.Env):
         self.node = Node(f"gym_lidar_mask_env_{int(time.time()*1000)}")
         # ---- random spawn points ----
         self.spawn_points = []
-        self.spawn_file = "/home/developer/ros2_ws/src/xy.txt"  # albo pełna ścieżka
+        self.spawn_file = "/home/developer/ros2_ws/src/xy8.txt"  # albo pełna ścieżka
         self.rng = np.random.default_rng()
 
         self._load_spawn_points(self.spawn_file)
@@ -216,6 +217,7 @@ class GazeboLidarMaskEnvObstacle(gym.Env):
             if ("vehicle_blue" in n1) or ("vehicle_blue" in n2):
                 self.obstacle_contact = True
                 self._contact_seq += 1
+                self.last_contact_time = time.time()
                 return
     def _nearest_centerline_idx(self, x: float, y: float) -> int:
         # prosto i stabilnie; jeśli kiedyś będzie wolno, to zrobimy KDTree
@@ -298,7 +300,8 @@ class GazeboLidarMaskEnvObstacle(gym.Env):
             self.obstacle_xy = (ox, oy)
             self.obstacle_idx = int(idx)
         else:
-            hide()
+           hide()
+           
 
 
 
@@ -629,6 +632,7 @@ class GazeboLidarMaskEnvObstacle(gym.Env):
     def _compute_reward(self):
             # 1. TWARDY KONIEC
             if self.offroad_flag:
+                self.node.get_logger().warn(f"[REWARD] OFFROAD -> reward=-500 (step={self.step_count})")
                 return -500.0
 
             # 2. ODCZYT STANU
@@ -715,7 +719,8 @@ class GazeboLidarMaskEnvObstacle(gym.Env):
         t0 = time.time()
         while time.time() - t0 < 1.0 and self._offroad_seq <= last_offroad_seq:
             rclpy.spin_once(self.node, timeout_sec=0.05)
-
+        self.obstacle_contact = False
+        self.last_contact_time = -1e9
         with self._lock:
             last_lidar_seq = self._lidar_seq
             last_mask_seq = self._mask_seq
@@ -772,6 +777,10 @@ class GazeboLidarMaskEnvObstacle(gym.Env):
         # =========================================================
         hit_obstacle = (not in_grace) and bool(self.obstacle_contact)
         if hit_obstacle:
+            self.node.get_logger().warn(
+                f"[REWARD] HIT OBSTACLE -> -{self.obstacle_hit_penalty} "
+                f"(step={self.step_count}, in_grace={in_grace}, contact_seq={self._contact_seq})"
+            )
             reward -= float(self.obstacle_hit_penalty)
 
         # =========================================================

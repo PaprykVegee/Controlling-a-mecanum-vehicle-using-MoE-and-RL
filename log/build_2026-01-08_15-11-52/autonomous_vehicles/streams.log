@@ -1,0 +1,27 @@
+[0.579s] Invoking command in '/home/developer/ros2_ws/src/autonomous_vehicles': PYTHONPATH=/home/developer/ros2_ws/src/build/autonomous_vehicles/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../build/autonomous_vehicles build --build-base /home/developer/ros2_ws/src/build/autonomous_vehicles/build install --record /home/developer/ros2_ws/src/build/autonomous_vehicles/install.log --single-version-externally-managed install_data
+[0.796s] running egg_info
+[0.803s] writing ../build/autonomous_vehicles/autonomous_vehicles.egg-info/PKG-INFO
+[0.803s] writing dependency_links to ../build/autonomous_vehicles/autonomous_vehicles.egg-info/dependency_links.txt
+[0.803s] writing entry points to ../build/autonomous_vehicles/autonomous_vehicles.egg-info/entry_points.txt
+[0.803s] writing requirements to ../build/autonomous_vehicles/autonomous_vehicles.egg-info/requires.txt
+[0.803s] writing top-level names to ../build/autonomous_vehicles/autonomous_vehicles.egg-info/top_level.txt
+[0.819s] reading manifest file '../build/autonomous_vehicles/autonomous_vehicles.egg-info/SOURCES.txt'
+[0.819s] reading manifest template 'MANIFEST.in'
+[0.820s] writing manifest file '../build/autonomous_vehicles/autonomous_vehicles.egg-info/SOURCES.txt'
+[0.820s] running build
+[0.820s] running build_py
+[0.820s] running install
+[0.824s] running install_lib
+[0.839s] running install_data
+[0.839s] running install_egg_info
+[0.848s] removing '/home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages/autonomous_vehicles-0.0.0-py3.10.egg-info' (and everything under it)
+[0.848s] Copying ../build/autonomous_vehicles/autonomous_vehicles.egg-info to /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages/autonomous_vehicles-0.0.0-py3.10.egg-info
+[0.848s] running install_scripts
+[0.881s] Installing control_node script to /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/autonomous_vehicles
+[0.881s] Installing gps_node script to /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/autonomous_vehicles
+[0.881s] Installing image_node script to /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/autonomous_vehicles
+[0.881s] Installing lidar_2d_node script to /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/autonomous_vehicles
+[0.881s] Installing lidar_node script to /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/autonomous_vehicles
+[0.881s] Installing offroad_checker script to /home/developer/ros2_ws/src/install/autonomous_vehicles/lib/autonomous_vehicles
+[0.881s] writing list of installed files to '/home/developer/ros2_ws/src/build/autonomous_vehicles/install.log'
+[0.906s] Invoked command in '/home/developer/ros2_ws/src/autonomous_vehicles' returned '0': PYTHONPATH=/home/developer/ros2_ws/src/build/autonomous_vehicles/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/developer/ros2_ws/src/install/autonomous_vehicles/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../build/autonomous_vehicles build --build-base /home/developer/ros2_ws/src/build/autonomous_vehicles/build install --record /home/developer/ros2_ws/src/build/autonomous_vehicles/install.log --single-version-externally-managed install_data

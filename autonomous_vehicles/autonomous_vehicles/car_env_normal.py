@@ -112,7 +112,7 @@ class GazeboLidarMaskEnvNormal(gym.Env):
         self.node = Node(f"gym_lidar_mask_env_{int(time.time()*1000)}")
         # ---- random spawn points ----
         self.spawn_points = []
-        self.spawn_file = "/home/developer/ros2_ws/src/xy.txt"  # albo pełna ścieżka
+        self.spawn_file = "/home/developer/ros2_ws/src/xy8.txt"  # albo pełna ścieżka
         self.rng = np.random.default_rng()
 
         self._load_spawn_points(self.spawn_file)

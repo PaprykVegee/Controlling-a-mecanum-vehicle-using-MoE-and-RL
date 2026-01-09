@@ -169,7 +169,7 @@ model = PPO(
     tensorboard_log=tb_dir,
 )
 
-model = PPO.load("/home/developer/ros2_ws/src/cheakpoints/checkpoint_35500_steps", env=vec_env, device=DEVICE)
+model = PPO.load("/home/developer/ros2_ws/src/cheakpoints/checkpoint_295000_steps.zip", env=vec_env, device=DEVICE)
 
 # =========================
 # Callback do zapisywania checkpointów
@@ -217,12 +217,12 @@ run.finish()
 
 
 
-################################### Ewaluacja ############################################
+################################## Ewaluacja ############################################
 
 # from stable_baselines3 import PPO
 
 # model = PPO.load(
-#     "/home/developer/ros2_ws/src/cheakpoints/checkpoint_35500_steps.zip",
+#     "/home/developer/ros2_ws/src/cheakpoints/checkpoint_185000_steps.zip",
 #     env=vec_env,
 #     device=DEVICE
 # )

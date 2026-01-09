@@ -169,7 +169,7 @@ model = PPO(
     tensorboard_log=tb_dir,
 )
 
-model = PPO.load("/home/developer/ros2_ws/src/cheakpoints/checkpoint_35500_steps", env=vec_env, device=DEVICE)
+# model = PPO.load("/home/developer/ros2_ws/src/cheakpoints/checkpoint_35500_steps", env=vec_env, device=DEVICE)
 
 # =========================
 # Callback do zapisywania checkpointów
@@ -207,7 +207,7 @@ callback = CallbackList([wandb_callback, checkpoint_callback])
 # =========================
 # Trening
 # =========================
-model.learn(total_timesteps=TOTAL_STEPS, callback=callback)
+# model.learn(total_timesteps=TOTAL_STEPS, callback=callback)
 
 # =========================
 # Zapis końcowy
@@ -222,12 +222,11 @@ run.finish()
 # from stable_baselines3 import PPO
 
 # model = PPO.load(
-#     "/home/developer/ros2_ws/src/cheakpoints/checkpoint_35500_steps.zip",
+#     "/home/developer/ros2_ws/src/cheakpoints/checkpoint_530000_steps.zip",
 #     env=vec_env,
 #     device=DEVICE
 # )
 
-# # 🔒 WYŁĄCZ TRYB TRENINGOWY
 # model.policy.set_training_mode(False)
 
 # # (opcjonalnie, ale dobre)

@@ -115,6 +115,8 @@ class ControllerNode(Node):
 
         self.stitcher = cv2.Stitcher_create()
 
+
+
     def mask_callback(self, msg: Float32MultiArray):
         dims = [dim.size for dim in msg.layout.dim]
         mask = np.array(msg.data, dtype=np.float32).reshape(dims)
@@ -205,7 +207,7 @@ class ControllerNode(Node):
             return
         img, img_deph = self.lidar_to_image_and_depth(lidar=self.lidar_points, mask=self.mask)
 
-        np.save(r"/home/developer/ros2_ws/src/method_tester/concat_lidar_mask.npy", np.stack([img, img_deph], axis=2))
+        # np.save(r"/home/developer/ros2_ws/src/method_tester/concat_lidar_mask.npy", np.stack([img, img_deph], axis=2))
 
         #depth_norm = cv2.normalize(img_deph, None, 0, 255, cv2.NORM_MINMAX)
         #depth_uint8 = depth_norm.astype(np.uint8)

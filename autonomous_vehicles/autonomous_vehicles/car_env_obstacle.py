@@ -591,7 +591,7 @@ class GazeboLidarMaskEnvObstacle(gym.Env):
         valid = ~np.isnan(lidar).any(axis=1) & np.isfinite(lidar).all(axis=1)
         lidar = lidar[valid]
         if lidar.shape[0] == 0:
-            return np.zeros((H, W), np.uint8), np.zeros((H, W), np.uint8)
+            return np.zeros((H, W), np.uint8), np.full((H, W), 255, np.uint8)
 
         x, y, z = lidar[:, 0], lidar[:, 1], lidar[:, 2]
 
@@ -605,15 +605,14 @@ class GazeboLidarMaskEnvObstacle(gym.Env):
         v = np.clip(v, 0, H - 1)
 
         mask_img = np.zeros((H, W), dtype=np.uint8)
-        depth_map = np.zeros((H, W), dtype=np.float32)
-
+        depth_map = np.full((H, W), float(depth_max_m), dtype=np.float32)
         mask_resized = np.flipud(np.fliplr(mask.copy()))
 
         depth = np.sqrt(x**2 + y**2 + z**2)
         depth = np.clip(depth, 0.0, float(depth_max_m))
 
         mask_img[v, u] = mask_resized[v, u]
-        depth_map[v, u] = depth
+        np.minimum.at(depth_map, (v, u), depth)
 
         mask_img = np.rot90(mask_img, 2)
         depth_map = np.rot90(depth_map, 2)
@@ -686,11 +685,12 @@ class GazeboLidarMaskEnvObstacle(gym.Env):
 
             # --- KARA ZA SPIRALĘ (Jazda do przodu z jednoczesnym kręceniem) ---
             # Jeśli stosunek obrotu do ruchu do przodu jest zbyt wysoki, dajemy mocną karę
-            spiral_penalty = 0.0
-            if progress > 0.01 and abs(w_cmd) > 0.4:
-                # Karzemy za każdy "radian obrotu na metr postępu"
-                spiral_penalty = 10.0 * (abs(w_cmd) / (progress + 0.1))
+            spin_penalty = 0.0
+            MIN_PROGRESS = 0.03       # m / krok (dobierz do dt=0.1)
+            W_SPIN_TH = 0.3           # rad/s
 
+            if progress < MIN_PROGRESS and abs(w_cmd) > W_SPIN_TH:
+                spin_penalty = 2.0 * abs(w_cmd)
             # Kara za bycie blisko krawędzi
             edge_penalty = 0.0
             if error > 0.5:
@@ -704,10 +704,15 @@ class GazeboLidarMaskEnvObstacle(gym.Env):
                 alive_reward
                 + progress_reward
                 - edge_penalty
-                - spiral_penalty
+                - spin_penalty
             )
 
             self.prev_pose_xy = cur
+            self.node.get_logger().info(
+            f"progress={progress:.3f} error={error:.3f} w={w_cmd:.3f} "
+            f"progR={progress_reward:.2f} edgeP={edge_penalty:.2f} spiralP={spin_penalty:.2f} "
+            f"total={reward:.2f}"
+)
             return float(reward)
 
 

@@ -1,1 +1,2 @@
-/home/developer/ros2_ws/src/build/autonomous_vehicles/config/bridge_params.yaml
+ros__parameters:
+  config_file: /home/developer/ros2_ws/src/autonomous_vehicles/config/bridge_config.yaml
